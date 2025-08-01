@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore.js";
-import { LogOut, Settings, User, BookOpen } from "lucide-react";
+import { LogOut, Settings, User, BookOpen, Target } from "lucide-react";
 
 const Navbar = () => {
     const { logout, authUser } = useAuthStore();
@@ -59,6 +59,19 @@ const Navbar = () => {
                         >
                             <BookOpen className="w-5 h-5" />
                             <span>Флеш картки</span>
+                        </Link>
+                    </li>
+                    <li>
+                        <Link
+                            to="/practice"
+                            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                                isActive('/practice')
+                                    ? 'bg-blue-500 text-white shadow-md'
+                                    : 'text-blue-100 hover:bg-blue-600 hover:text-white'
+                            }`}
+                        >
+                            <Target className="w-5 h-5" />
+                            <span>Практика</span>
                         </Link>
                     </li>
                     <li>

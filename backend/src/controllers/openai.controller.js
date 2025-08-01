@@ -70,6 +70,9 @@ const generateFlashcardContent = async (req, res) => {
             case "definition":
                 prompt = `English level you must to use in your output: ${englishLevel}. A detailed definition/explanation of meaning and usage (can be longer and more comprehensive) for: ${text}. Format example for output: A valley is a long, low area of land between hills or mountains. It is often formed by rivers or glaciers and can be wide or narrow. Valleys are places where people can live, grow crops, or travel through because they are lower and sometimes flatter than the surrounding land.`;
                 break;
+            case "exerciseExplanation":
+                prompt = `English level you must to use in your output: ${englishLevel}. Create a NEW and DIFFERENT explanation/description for the word/phrase: "${text}". This explanation will be used in a multiple-choice exercise where students need to guess the word. Make it clear and descriptive but don't use the word itself or its direct translations. The explanation should be 2-3 sentences long and help students identify the word. Focus on characteristics, usage, or context rather than just definition.`;
+                break;
             case "shortDescription":
                 prompt = `English level you must to use in your output: ${englishLevel}. Write a very short description (1-2 sentences max, under 100 characters) for English word/phrase: "${text}". The description should be concise, clear and appropriate for ${englishLevel} level learners.`;
                 break;

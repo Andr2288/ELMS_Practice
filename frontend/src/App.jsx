@@ -5,6 +5,7 @@ import {Routes, Route, Navigate} from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 
 import HomePage from "./pages/HomePage.jsx";
+import PracticePage from "./pages/PracticePage.jsx";
 import SignUpPage from "./pages/SignUpPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
@@ -59,6 +60,7 @@ const App = () => {
 
             <Routes>
                 <Route path="/" element={ authUser ? <HomePage /> : <Navigate to="/login" /> } />
+                <Route path="/practice" element={ authUser ? <PracticePage /> : <Navigate to="/login" /> } />
                 <Route path="/signup" element={ !authUser ? <SignUpPage /> : <Navigate to="/" /> } />
                 <Route path="/login" element={ !authUser ? <LoginPage /> : <Navigate to="/" /> } />
                 <Route path="/settings" element={ authUser ? <SettingsPage /> : <Navigate to="/login" /> } />
