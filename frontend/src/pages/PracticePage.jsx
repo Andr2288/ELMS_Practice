@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useFlashcardStore } from "../store/useFlashcardStore.js";
 import { useCategoryStore } from "../store/useCategoryStore.js";
 import MultipleChoiceExercise from "../components/exercises/MultipleChoiceExercise.jsx";
+import ListenAndFillExercise from "../components/exercises/ListenAndFillExercise.jsx";
 import {
     Target, BookOpen, RotateCcw, Play, Headphones,
     Shuffle, Brain, CheckSquare, Volume2, Clock,
@@ -51,6 +52,12 @@ const PracticePage = () => {
             return;
         }
 
+        // For listen-and-fill, we need at least 1 card
+        if (exerciseType === 'listen-and-fill' && practiceCards.length === 0) {
+            alert('Для цієї вправи потрібна хоча б одна картка.');
+            return;
+        }
+
         // Shuffle cards for practice
         const shuffledCards = [...practiceCards].sort(() => Math.random() - 0.5);
 
@@ -74,6 +81,15 @@ const PracticePage = () => {
                 return (
                     <div className="ml-64 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
                         <MultipleChoiceExercise
+                            practiceCards={currentExercise.cards}
+                            onExit={handleExerciseExit}
+                        />
+                    </div>
+                );
+            case 'listen-and-fill':
+                return (
+                    <div className="ml-64 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+                        <ListenAndFillExercise
                             practiceCards={currentExercise.cards}
                             onExit={handleExerciseExit}
                         />
@@ -277,7 +293,7 @@ const PracticePage = () => {
                                 </div>
                             </div>
 
-                            {/* Прослухати та вставити */}
+                            {/* Прослухати та вписати - ОНОВЛЕНО */}
                             <div
                                 onClick={() => handleExerciseClick('listen-and-fill')}
                                 className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 cursor-pointer group hover:-translate-y-2"
@@ -290,7 +306,7 @@ const PracticePage = () => {
                                 </div>
                                 <h3 className="text-lg font-bold text-gray-900 mb-2">Слухання та письмо</h3>
                                 <p className="text-gray-600 mb-4">
-                                    Прослухайте слово та вставте його у пропуск в реченні
+                                    Прослухайте речення з пропуском та впишіть правильне слово
                                 </p>
                                 <div className="flex items-center text-sm text-gray-500">
                                     <Volume2 className="w-4 h-4 mr-2" />

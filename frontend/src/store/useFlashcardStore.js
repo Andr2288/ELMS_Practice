@@ -200,6 +200,21 @@ export const useFlashcardStore = create((set, get) => ({
     }
   },
 
+  generateSentenceWithGap: async (text, englishLevel) => {
+    try {
+      const response = await axiosInstance.post("/openai/generate-flashcard", {
+        text,
+        englishLevel,
+        promptType: "sentenceWithGap"
+      });
+
+      return response.data.result;
+    } catch (error) {
+      console.error("Error generating sentence with gap:", error);
+      throw error;
+    }
+  },
+
   // НОВА ФУНКЦІЯ: Регенерація прикладів для існуючої картки
   regenerateExamples: async (cardId) => {
     try {

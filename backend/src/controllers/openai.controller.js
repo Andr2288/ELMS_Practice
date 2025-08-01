@@ -82,6 +82,22 @@ const generateFlashcardContent = async (req, res) => {
             case "examples": // НОВИЙ ТИП: генерація 3 прикладів
                 prompt = `Create 3 different example sentences using the word/phrase: "${text}". English level you must to use in your output: ${englishLevel}. Each sentence should show different contexts or meanings. Return as a JSON array of strings.`;
                 break;
+            case "sentenceWithGap": // НОВИЙ ТИП: генерація речення з пропуском для вправи слухання
+                prompt = `Create a natural sentence with a gap where the word "${text}" should be placed. 
+                English level you must to use in your output: ${englishLevel}.
+                
+                Requirements:
+                - The sentence should be 8-15 words long
+                - Use "____" (four underscores) as the gap placeholder
+                - The sentence should provide enough context to guess the missing word
+                - The word "${text}" should fit naturally in the gap
+                - Make the sentence realistic and conversational
+                - Don't make it too obvious or too difficult for ${englishLevel} level
+                
+                Return ONLY the sentence with the gap, nothing else.
+                
+                Example format: "I need to ____ my homework before dinner."`;
+                break;
             case "transcription":
                 prompt = `You are integrated in English LMS. Provide me with the transcription for: ${text}. Resources: Oxford Learner's Dictionaries. String format example for output: UK: [ˌjuːnɪˈvɜːsəti]; US: [ˌjuːnɪˈvɜːrsəti];`;
                 break;
@@ -188,12 +204,15 @@ const generateFlashcardContent = async (req, res) => {
                     .filter(line => line.length > 0)
                     .slice(0, 3);
             }
+        } else if (promptType === "sentenceWithGap") {
+            // Для генерації речення з пропуском просто очищуємо відповідь
+            parsedResponse = aiResponse.trim().replace(/^["']|["']$/g, '');
         }
 
         return res.status(200).json({
             result: parsedResponse,
             raw: aiResponse,
-            parsed: promptType === "completeFlashcard" || promptType === undefined || promptType === "examples",
+            parsed: promptType === "completeFlashcard" || promptType === undefined || promptType === "examples" || promptType === "sentenceWithGap",
             apiKeyInfo,
             modelUsed: modelToUse
         });

@@ -203,3 +203,37 @@ kbd {
         margin-bottom: 0.5rem;
     }
 }
+
+/* Pulse effect for audio visualizer bars */
+@keyframes audio-pulse {
+    0%, 100% {
+        transform: scaleY(0.5);
+    }
+    50% {
+        transform: scaleY(1);
+    }
+}
+
+.audio-bar {
+    animation: audio-pulse 1s ease-in-out infinite;
+}
+
+/* Audio wave animation for playing state */
+@keyframes audio-wave {
+    0%, 100% {
+        transform: scaleY(0.3);
+    }
+    25% {
+        transform: scaleY(1);
+    }
+    50% {
+        transform: scaleY(0.7);
+    }
+    75% {
+        transform: scaleY(0.9);
+    }
+}
+
+.audio-playing {
+    animation: audio-wave 0.8s ease-in-out infinite;
+}
