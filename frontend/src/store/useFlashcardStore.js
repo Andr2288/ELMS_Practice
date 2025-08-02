@@ -1,4 +1,4 @@
-// frontend/src/store/useFlashcardStore.js - ОНОВЛЕНА ВЕРСІЯ З ПІДТРИМКОЮ КІЛЬКОХ ПРИКЛАДІВ
+// frontend/src/store/useFlashcardStore.js - ОНОВЛЕНА ВЕРСІЯ З ПІДТРИМКОЮ НОВОГО ПРОМПТУ
 
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios.js";
@@ -211,6 +211,22 @@ export const useFlashcardStore = create((set, get) => ({
       return response.data.result;
     } catch (error) {
       console.error("Error generating sentence with gap:", error);
+      throw error;
+    }
+  },
+
+  // НОВА ФУНКЦІЯ: Генерація завуальованого опису для вправи поєднання
+  generateMatchingDescription: async (text, englishLevel) => {
+    try {
+      const response = await axiosInstance.post("/openai/generate-flashcard", {
+        text,
+        englishLevel,
+        promptType: "matchingDescription"
+      });
+
+      return response.data.result;
+    } catch (error) {
+      console.error("Error generating matching description:", error);
       throw error;
     }
   },

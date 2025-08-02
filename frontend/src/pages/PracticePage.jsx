@@ -5,6 +5,7 @@ import { useFlashcardStore } from "../store/useFlashcardStore.js";
 import { useCategoryStore } from "../store/useCategoryStore.js";
 import MultipleChoiceExercise from "../components/exercises/MultipleChoiceExercise.jsx";
 import ListenAndFillExercise from "../components/exercises/ListenAndFillExercise.jsx";
+import MatchDescriptionsExercise from "../components/exercises/MatchDescriptionsExercise.jsx";
 import {
     Target, BookOpen, RotateCcw, Play, Headphones,
     Shuffle, Brain, CheckSquare, Volume2, Clock,
@@ -58,6 +59,12 @@ const PracticePage = () => {
             return;
         }
 
+        // For match-definitions, we need at least 3 cards
+        if (exerciseType === 'match-definitions' && practiceCards.length < 3) {
+            alert('Для цієї вправи потрібно мінімум 3 картки. У вас є тільки ' + practiceCards.length + '.');
+            return;
+        }
+
         // Shuffle cards for practice
         const shuffledCards = [...practiceCards].sort(() => Math.random() - 0.5);
 
@@ -90,6 +97,15 @@ const PracticePage = () => {
                 return (
                     <div className="ml-64 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
                         <ListenAndFillExercise
+                            practiceCards={currentExercise.cards}
+                            onExit={handleExerciseExit}
+                        />
+                    </div>
+                );
+            case 'match-definitions':
+                return (
+                    <div className="ml-64 min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+                        <MatchDescriptionsExercise
                             practiceCards={currentExercise.cards}
                             onExit={handleExerciseExit}
                         />
@@ -293,7 +309,7 @@ const PracticePage = () => {
                                 </div>
                             </div>
 
-                            {/* Прослухати та вписати - ОНОВЛЕНО */}
+                            {/* Прослухати та вписати */}
                             <div
                                 onClick={() => handleExerciseClick('listen-and-fill')}
                                 className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 cursor-pointer group hover:-translate-y-2"

@@ -76,6 +76,27 @@ const generateFlashcardContent = async (req, res) => {
             case "shortDescription":
                 prompt = `English level you must to use in your output: ${englishLevel}. Write a very short description (1-2 sentences max, under 100 characters) for English word/phrase: "${text}". The description should be concise, clear and appropriate for ${englishLevel} level learners.`;
                 break;
+            case "matchingDescription": // НОВИЙ ТИП ПРОМПТУ
+                prompt = `English level you must to use in your output: ${englishLevel}. 
+
+Create a short description for the word/phrase: "${text}" for a matching exercise.
+
+CRITICAL RULES:
+- DO NOT use the word "${text}" or any part of it in your description
+- DO NOT use synonyms or direct translations of "${text}"
+- DO NOT use phrases like "This word means..." or "It is when..."
+- Make it 1-2 sentences maximum
+- Focus on describing the concept, action, or thing WITHOUT naming it
+- Use simple, clear language appropriate for ${englishLevel} level
+- The description should help identify the word but require thinking
+
+Examples of GOOD descriptions:
+- For "library": "A quiet place where people borrow books and study"
+- For "celebrate": "When people have a party because something good happened"
+- For "mountain": "Very tall land that goes high up into the sky"
+
+Create a similar indirect description for: "${text}"`;
+                break;
             case "example":
                 prompt = `Create a sentence. English level you must to use in your output: ${englishLevel}. Word to use: ${text}`;
                 break;
@@ -204,15 +225,15 @@ const generateFlashcardContent = async (req, res) => {
                     .filter(line => line.length > 0)
                     .slice(0, 3);
             }
-        } else if (promptType === "sentenceWithGap") {
-            // Для генерації речення з пропуском просто очищуємо відповідь
+        } else if (promptType === "sentenceWithGap" || promptType === "matchingDescription") {
+            // Для генерації речення з пропуском та опису для поєднання просто очищуємо відповідь
             parsedResponse = aiResponse.trim().replace(/^["']|["']$/g, '');
         }
 
         return res.status(200).json({
             result: parsedResponse,
             raw: aiResponse,
-            parsed: promptType === "completeFlashcard" || promptType === undefined || promptType === "examples" || promptType === "sentenceWithGap",
+            parsed: promptType === "completeFlashcard" || promptType === undefined || promptType === "examples" || promptType === "sentenceWithGap" || promptType === "matchingDescription",
             apiKeyInfo,
             modelUsed: modelToUse
         });
