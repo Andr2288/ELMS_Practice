@@ -30,6 +30,10 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
     const [audioError, setAudioError] = useState(null);
     const [isLoadingAudio, setIsLoadingAudio] = useState(false);
 
+    // ВИПРАВЛЕНО: Використовуємо useRef для надійнішого відстеження session ID
+    const currentSessionRef = useRef(null);
+    const [audioSessionId, setAudioSessionId] = useState(null);
+
     const audioRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -65,6 +69,14 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
         setIsLoading(true);
         setIsGenerating(true);
         setAudioError(null);
+        setShowResult(false);
+
+        // ВИПРАВЛЕНО: Створюємо унікальний session ID та зберігаємо в ref
+        const newSessionId = `${card._id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        currentSessionRef.current = newSessionId;
+        setAudioSessionId(newSessionId);
+
+        console.log(`[${newSessionId}] Starting new session for card: "${card.text}"`);
 
         // Clear previous audio immediately
         if (audioUrl) {
@@ -73,10 +85,14 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
         }
         setIsPlayingAudio(false);
 
-        try {
-            setShowResult(false);
+        // ВИПРАВЛЕНО: Очищуємо стейт та чекаємо
+        setExerciseData(null);
+        setUserAnswer("");
+        setSelectedAnswer(null);
+        setIsCorrect(null);
 
-            console.log(`Generating question for word: "${card.text}"`);
+        try {
+            console.log(`[${newSessionId}] Generating question for word: "${card.text}"`);
 
             // Generate sentence data with new JSON format
             const response = await generateFieldContent(
@@ -90,14 +106,14 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
             // ВИПРАВЛЕНО: response вже має бути об'єктом, якщо backend працює правильно
             if (typeof response === 'object' && response !== null) {
                 exerciseData = response;
-                console.log('Received exercise data from API:', exerciseData);
+                console.log(`[${newSessionId}] Received exercise data from API:`, exerciseData);
             } else if (typeof response === 'string') {
                 // Fallback: якщо прийшов рядок, намагаємось парсити як JSON
                 try {
                     exerciseData = JSON.parse(response);
-                    console.log('Parsed exercise data from string:', exerciseData);
+                    console.log(`[${newSessionId}] Parsed exercise data from string:`, exerciseData);
                 } catch (parseError) {
-                    console.error("Failed to parse string response as JSON:", parseError);
+                    console.error(`[${newSessionId}] Failed to parse string response as JSON:`, parseError);
                     throw new Error("Invalid response format from AI");
                 }
             } else {
@@ -110,13 +126,13 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
             }
 
             if (!exerciseData.displaySentence || !exerciseData.audioSentence || !exerciseData.correctForm) {
-                console.error("Missing required fields:", exerciseData);
+                console.error(`[${newSessionId}] Missing required fields:`, exerciseData);
                 throw new Error("Missing required fields in exercise data");
             }
 
             // Перевірка що displaySentence містить пропуск
             if (!exerciseData.displaySentence.includes('____')) {
-                console.error("Display sentence doesn't contain gap:", exerciseData.displaySentence);
+                console.error(`[${newSessionId}] Display sentence doesn't contain gap:`, exerciseData.displaySentence);
                 throw new Error("Display sentence doesn't contain gap");
             }
 
@@ -125,23 +141,22 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                 exerciseData.hint = "";
             }
 
-            console.log('Successfully validated exercise data:', exerciseData);
+            console.log(`[${newSessionId}] Successfully validated exercise data:`, exerciseData);
 
-            // Set the exercise data
+            // ВИПРАВЛЕНО: Встановлюємо дані та чекаємо мілісекунду
             setExerciseData(exerciseData);
-
-            // Small delay to ensure state is updated
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            // Generate audio for the COMPLETE sentence
-            await generateAudio(exerciseData.audioSentence, card.text);
-
-            setUserAnswer("");
-            setSelectedAnswer(null);
-            setIsCorrect(null);
+            // ВИПРАВЛЕНО: Перевіряємо що session ID не змінився перед генерацією аудіо
+            if (currentSessionRef.current === newSessionId) {
+                console.log(`[${newSessionId}] Generating audio for: "${exerciseData.audioSentence}"`);
+                await generateAudio(exerciseData.audioSentence, card.text, newSessionId);
+            } else {
+                console.log(`[${newSessionId}] Session ID changed during generation (current: ${currentSessionRef.current}), skipping audio`);
+            }
 
         } catch (error) {
-            console.error("Error generating question:", error);
+            console.error(`[${newSessionId}] Error generating question:`, error);
 
             // Enhanced fallback logic based on existing card data
             let fallbackData;
@@ -179,42 +194,51 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                 };
             }
 
-            console.log(`Using fallback exercise data:`, fallbackData);
+            console.log(`[${newSessionId}] Using fallback exercise data:`, fallbackData);
 
             setExerciseData(fallbackData);
-
-            // Small delay for fallback too
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            // Try to generate audio even for fallback
-            try {
-                await generateAudio(fallbackData.audioSentence, card.text);
-            } catch (audioError) {
-                console.error("Audio generation also failed:", audioError);
-                setAudioError("Помилка генерації аудіо");
+            // ВИПРАВЛЕНО: Перевіряємо session ID перед fallback аудіо
+            if (currentSessionRef.current === newSessionId) {
+                try {
+                    await generateAudio(fallbackData.audioSentence, card.text, newSessionId);
+                } catch (audioError) {
+                    console.error(`[${newSessionId}] Audio generation also failed:`, audioError);
+                    setAudioError("Помилка генерації аудіо");
+                }
+            } else {
+                console.log(`[${newSessionId}] Session ID changed during fallback (current: ${currentSessionRef.current}), skipping audio`);
             }
-
-            setUserAnswer("");
-            setSelectedAnswer(null);
-            setIsCorrect(null);
-            setShowResult(false);
         } finally {
             setIsLoading(false);
             setIsGenerating(false);
         }
     };
 
-    // Generate TTS audio
-    const generateAudio = async (sentence, targetWord = null) => {
+    // ВИПРАВЛЕНО: Generate TTS audio з session tracking
+    const generateAudio = async (sentence, targetWord = null, sessionId = null) => {
+        const currentSessionId = sessionId || currentSessionRef.current;
+
+        // ДОДАНА ПЕРЕВІРКА: Переконуємося що session ще актуальний
+        if (currentSessionRef.current !== currentSessionId) {
+            console.log(`[${currentSessionId}] Session expired before audio generation started`);
+            return;
+        }
+
         setIsLoadingAudio(true);
         setAudioError(null);
 
         try {
-            console.log(`Generating TTS for: "${sentence}"${targetWord ? ` (target word: ${targetWord})` : ''}`);
+            console.log(`[${currentSessionId}] Generating TTS for: "${sentence}"${targetWord ? ` (target word: ${targetWord})` : ''}`);
 
+            // ВИПРАВЛЕНО: Додаємо унікальні параметри для кожного запиту
             const requestData = {
                 text: sentence,
-                timestamp: Date.now() // Force cache bypass
+                timestamp: Date.now(),
+                sessionId: currentSessionId, // Додаємо session ID
+                cardId: currentCard?._id, // Додаємо ID картки
+                exercise: 'listen-and-fill' // Додаємо тип вправи
             };
 
             const response = await axiosInstance.post('/tts/speech',
@@ -230,10 +254,16 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                 }
             );
 
+            // ВИПРАВЛЕНО: Перевіряємо що session ID ще актуальний
+            if (currentSessionRef.current !== currentSessionId) {
+                console.log(`[${currentSessionId}] Session ID changed during audio generation, ignoring result`);
+                return;
+            }
+
             const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
             const newAudioUrl = URL.createObjectURL(audioBlob);
 
-            console.log(`TTS audio generated successfully for: "${sentence}"`);
+            console.log(`[${currentSessionId}] TTS audio generated successfully for: "${sentence}"`);
 
             // Clean up previous audio URL before setting new one
             if (audioUrl) {
@@ -242,14 +272,10 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
 
             setAudioUrl(newAudioUrl);
 
-            // Auto-play the audio once it's ready with a small delay
-            setTimeout(() => {
-                console.log(`Auto-playing audio for: "${sentence}"`);
-                playAudio();
-            }, 300);
+            // ВИПРАВЛЕНО: Відтворення буде автоматично через useEffect при зміні audioUrl
 
         } catch (error) {
-            console.error("Error generating audio:", error);
+            console.error(`[${currentSessionId}] Error generating audio:`, error);
 
             let errorMessage = "Помилка генерації аудіо";
 
@@ -265,40 +291,45 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                 errorMessage = "Немає з'єднання з інтернетом";
             }
 
-            setAudioError(errorMessage);
+            // ВИПРАВЛЕНО: Показуємо помилку тільки якщо session ID актуальний
+            if (currentSessionRef.current === currentSessionId) {
+                setAudioError(errorMessage);
+            }
         } finally {
-            setIsLoadingAudio(false);
+            if (currentSessionRef.current === currentSessionId) {
+                setIsLoadingAudio(false);
+            }
         }
     };
 
     // Play audio
     const playAudio = () => {
         if (audioRef.current && audioUrl) {
-            console.log(`Playing audio...`);
+            console.log(`[${currentSessionRef.current}] Playing audio...`);
             setIsPlayingAudio(true);
             audioRef.current.currentTime = 0; // Reset to beginning
             audioRef.current.play()
                 .then(() => {
-                    console.log(`Audio playback started successfully`);
+                    console.log(`[${currentSessionRef.current}] Audio playback started successfully`);
                 })
                 .catch(error => {
-                    console.error("Error playing audio:", error);
+                    console.error(`[${currentSessionRef.current}] Error playing audio:`, error);
                     setAudioError("Помилка відтворення аудіо");
                     setIsPlayingAudio(false);
                 });
         } else {
-            console.warn("Cannot play audio: missing audio reference or URL");
+            console.warn(`[${currentSessionRef.current}] Cannot play audio: missing audio reference or URL`);
         }
     };
 
     // Audio event handlers
     const handleAudioEnded = () => {
-        console.log("Audio playback ended");
+        console.log(`[${currentSessionRef.current}] Audio playback ended`);
         setIsPlayingAudio(false);
     };
 
     const handleAudioError = (e) => {
-        console.error("Audio playback error:", e);
+        console.error(`[${currentSessionRef.current}] Audio playback error:`, e);
         setIsPlayingAudio(false);
         setAudioError("Помилка відтворення аудіо");
     };
@@ -306,19 +337,28 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
     // Initialize first question
     useEffect(() => {
         if (currentCard) {
-            console.log(`Initializing question for card: "${currentCard.text}" (index: ${currentCardIndex})`);
+            console.log(`Initializing question for card: "${currentCard.text}" (index: ${currentCardIndex}) - Previous session: ${currentSessionRef.current}`);
 
-            // Cleanup previous audio
+            // ВИПРАВЛЕНО: Cleanup previous audio та reset всіх станів
             if (audioUrl) {
                 console.log("Cleaning up previous audio URL");
                 URL.revokeObjectURL(audioUrl);
                 setAudioUrl(null);
             }
             setIsPlayingAudio(false);
+            setAudioError(null);
+            setExerciseData(null);
 
-            generateQuestion(currentCard);
+            // ВИПРАВЛЕНО: Додаємо невелику затримку для уникнення race conditions
+            const timer = setTimeout(() => {
+                generateQuestion(currentCard);
+            }, 50);
+
+            return () => {
+                clearTimeout(timer);
+            };
         }
-    }, [currentCard]);
+    }, [currentCardIndex]); // ВИПРАВЛЕНО: Змінюємо залежність на currentCardIndex замість currentCard
 
     // Cleanup audio URL on unmount and when audioUrl changes
     useEffect(() => {
@@ -329,6 +369,23 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
             }
         };
     }, [audioUrl]);
+
+    // ДОДАНО: Автоматичне відтворення нового аудіо
+    useEffect(() => {
+        if (audioUrl && audioRef.current && !isPlayingAudio && !audioError) {
+            console.log(`[${currentSessionRef.current}] Auto-playing new audio`);
+
+            // Невелика затримка для надійності
+            const autoPlayTimer = setTimeout(() => {
+                // Подвійна перевірка що все ще актуально
+                if (audioUrl && audioRef.current && !isPlayingAudio) {
+                    playAudio();
+                }
+            }, 200);
+
+            return () => clearTimeout(autoPlayTimer);
+        }
+    }, [audioUrl]); // Викликається при зміні audioUrl
 
     // Enhanced check answer function - now checks against correct form
     const checkAnswer = (answer, correctForm, originalWord) => {
@@ -395,7 +452,7 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
     const handleRestart = () => {
         setCurrentCardIndex(0);
         setScore({ correct: 0, total: 0 });
-        generateQuestion(practiceCards[0]);
+        // generateQuestion буде викликана через useEffect
     };
 
     // Focus input when result is shown

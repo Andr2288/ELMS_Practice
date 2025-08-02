@@ -1,4 +1,4 @@
-// backend/src/controllers/tts.controller.js
+// backend/src/controllers/tts.controller.js - ОНОВЛЕНА ВЕРСІЯ
 
 import OpenAI from "openai";
 import crypto from "crypto";
@@ -9,12 +9,15 @@ const audioCache = new Map();
 
 const generateSpeech = async (req, res) => {
     try {
-        const { text } = req.body;
+        const { text, timestamp, sessionId, cardId, exercise } = req.body;
         const userId = req.user._id;
 
         if (!text) {
             return res.status(400).json({ message: "Text is required" });
         }
+
+        console.log(`TTS Request - User: ${userId}, Session: ${sessionId}, Card: ${cardId}, Exercise: ${exercise}`);
+        console.log(`TTS Text: "${text.substring(0, 100)}..."`);
 
         // Get user settings first
         let userSettings = await UserSettings.findOne({ userId });
@@ -58,33 +61,48 @@ const generateSpeech = async (req, res) => {
             });
         }
 
-        // Create cache key from text and user settings
+        // ОНОВЛЕНО: Create enhanced cache key with more unique parameters
+        const cacheKeyData = {
+            text: text.toLowerCase().trim(),
+            model: userSettings.ttsSettings.model,
+            voice: userSettings.ttsSettings.voice,
+            speed: userSettings.ttsSettings.speed,
+            style: userSettings.ttsSettings.voiceStyle,
+            custom: userSettings.ttsSettings.customInstructions,
+            // ДОДАНО: Нові параметри для унікальності
+            sessionId: sessionId || 'no-session',
+            cardId: cardId || 'no-card',
+            exercise: exercise || 'general',
+            timestamp: timestamp || Date.now(),
+            userId: userId.toString() // Додаємо user ID для ізоляції кешу
+        };
+
         const settingsHash = crypto.createHash('md5')
-            .update(JSON.stringify({
-                text: text.toLowerCase().trim(),
-                model: userSettings.ttsSettings.model,
-                voice: userSettings.ttsSettings.voice,
-                speed: userSettings.ttsSettings.speed,
-                style: userSettings.ttsSettings.voiceStyle,
-                custom: userSettings.ttsSettings.customInstructions
-            }))
+            .update(JSON.stringify(cacheKeyData))
             .digest('hex');
 
-        // Check cache if enabled
-        if (userSettings.generalSettings.cacheAudio && audioCache.has(settingsHash)) {
-            console.log("Using cached audio for:", text.substring(0, 50));
+        console.log(`TTS Cache Key: ${settingsHash} (Session: ${sessionId})`);
+
+        // Check cache if enabled - але тільки для загальних запитів, не для вправ
+        const shouldUseCache = userSettings.generalSettings.cacheAudio &&
+            (!exercise || exercise === 'general') &&
+            audioCache.has(settingsHash);
+
+        if (shouldUseCache) {
+            console.log(`Using cached audio for session ${sessionId}: ${text.substring(0, 50)}`);
             const cachedAudio = audioCache.get(settingsHash);
             res.set({
                 'Content-Type': 'audio/mpeg',
                 'Content-Length': cachedAudio.length,
                 'Cache-Control': 'public, max-age=86400',
                 'X-Audio-Source': 'cache',
-                'X-API-Key-Source': apiKeyInfo.effectiveSource
+                'X-API-Key-Source': apiKeyInfo.effectiveSource,
+                'X-Session-Id': sessionId || 'no-session'
             });
             return res.send(cachedAudio);
         }
 
-        console.log(`Generating TTS for: "${text.substring(0, 50)}" using ${apiKeyInfo.effectiveSource} API key`);
+        console.log(`Generating new TTS for session ${sessionId}: "${text.substring(0, 50)}" using ${apiKeyInfo.effectiveSource} API key`);
         console.log(`Settings: model=${userSettings.ttsSettings.model}, voice=${userSettings.ttsSettings.voice}, speed=${userSettings.ttsSettings.speed}`);
 
         // Initialize OpenAI with effective API key
@@ -115,10 +133,18 @@ const generateSpeech = async (req, res) => {
         const mp3 = await openai.audio.speech.create(ttsParams);
         const buffer = Buffer.from(await mp3.arrayBuffer());
 
-        // Cache the audio if enabled and cache isn't full
-        if (userSettings.generalSettings.cacheAudio && audioCache.size < 100) {
+        console.log(`TTS generated successfully for session ${sessionId}. Buffer size: ${buffer.length}`);
+
+        // ОНОВЛЕНО: Cache logic - кешуємо тільки загальні запити, не вправи
+        const shouldCache = userSettings.generalSettings.cacheAudio &&
+            audioCache.size < 100 &&
+            (!exercise || exercise === 'general');
+
+        if (shouldCache) {
             audioCache.set(settingsHash, buffer);
-            console.log("Audio cached. Cache size:", audioCache.size);
+            console.log(`Audio cached for session ${sessionId}. Cache size: ${audioCache.size}`);
+        } else if (exercise) {
+            console.log(`Not caching audio for exercise: ${exercise} (session: ${sessionId})`);
         }
 
         res.set({
@@ -128,7 +154,9 @@ const generateSpeech = async (req, res) => {
             'X-Audio-Source': 'generated',
             'X-API-Key-Source': apiKeyInfo.effectiveSource,
             'X-TTS-Model': userSettings.ttsSettings.model,
-            'X-TTS-Voice': userSettings.ttsSettings.voice
+            'X-TTS-Voice': userSettings.ttsSettings.voice,
+            'X-Session-Id': sessionId || 'no-session',
+            'X-Exercise': exercise || 'general'
         });
 
         return res.send(buffer);
@@ -252,19 +280,73 @@ const testTTSWithCurrentSettings = async (req, res) => {
     }
 };
 
-// Clear audio cache
+// ОНОВЛЕНО: Clear audio cache with statistics
 const clearAudioCache = async (req, res) => {
     try {
         const cacheSize = audioCache.size;
+
+        // ДОДАНО: Статистика кешу перед очищенням
+        const cacheStats = {
+            totalEntries: cacheSize,
+            memoryUsage: 0
+        };
+
+        // Підрахунок приблизного використання пам'яті
+        for (const [key, buffer] of audioCache.entries()) {
+            cacheStats.memoryUsage += buffer.length;
+        }
+
         audioCache.clear();
+
+        console.log(`Audio cache cleared. Was holding ${cacheStats.totalEntries} entries, ~${Math.round(cacheStats.memoryUsage / 1024 / 1024)}MB`);
 
         return res.status(200).json({
             message: "Audio cache cleared",
-            cleared_entries: cacheSize
+            statistics: {
+                cleared_entries: cacheSize,
+                memory_freed_mb: Math.round(cacheStats.memoryUsage / 1024 / 1024),
+                memory_freed_bytes: cacheStats.memoryUsage
+            }
         });
     } catch (error) {
         console.log("Error clearing cache:", error.message);
         return res.status(500).json({ message: "Error clearing cache" });
+    }
+};
+
+// ДОДАНО: Отримання статистики кешу
+const getCacheStats = async (req, res) => {
+    try {
+        const cacheStats = {
+            totalEntries: audioCache.size,
+            memoryUsage: 0,
+            entries: []
+        };
+
+        // Підрахунок використання пам'яті та деталі записів
+        for (const [key, buffer] of audioCache.entries()) {
+            cacheStats.memoryUsage += buffer.length;
+            cacheStats.entries.push({
+                key: key.substring(0, 16) + '...', // Показуємо тільки частину ключа
+                size: buffer.length,
+                size_kb: Math.round(buffer.length / 1024)
+            });
+        }
+
+        // Сортуємо за розміром (найбільші спочатку)
+        cacheStats.entries.sort((a, b) => b.size - a.size);
+
+        return res.status(200).json({
+            cache_statistics: {
+                total_entries: cacheStats.totalEntries,
+                total_memory_mb: Math.round(cacheStats.memoryUsage / 1024 / 1024),
+                total_memory_bytes: cacheStats.memoryUsage,
+                largest_entries: cacheStats.entries.slice(0, 10) // Показуємо топ 10
+            }
+        });
+    } catch (error) {
+        console.log("Error getting cache stats:", error.message);
+        return res.status(500).json({ message: "Error getting cache statistics" });
     }
 };
 
@@ -352,5 +434,6 @@ export default {
     generateSpeech,
     testTTSWithCurrentSettings,
     clearAudioCache,
+    getCacheStats, // ДОДАНО
     checkAvailableModels,
 };

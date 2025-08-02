@@ -1,4 +1,4 @@
-// backend/src/routes/tts.route.js
+// backend/src/routes/tts.route.js - ОНОВЛЕНА ВЕРСІЯ
 
 import express from "express";
 
@@ -18,5 +18,8 @@ router.get("/models", authMiddleware.protectRoute, ttsController.checkAvailableM
 
 // Clear audio cache
 router.post("/clear-cache", authMiddleware.protectRoute, ttsController.clearAudioCache);
+
+// ДОДАНО: Get cache statistics
+router.get("/cache-stats", authMiddleware.protectRoute, ttsController.getCacheStats);
 
 export default router;
