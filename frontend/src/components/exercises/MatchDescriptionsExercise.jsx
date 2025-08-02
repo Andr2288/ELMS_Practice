@@ -1,4 +1,4 @@
-// frontend/src/components/exercises/MatchDescriptionsExercise.jsx - DRAG AND DROP VERSION
+// frontend/src/components/exercises/MatchDescriptionsExercise.jsx - ВИПРАВЛЕНА ВЕРСІЯ З МОЖЛИВІСТЮ ПЕРЕТЯГУВАННЯ З DROP ZONES
 
 import { useState, useEffect } from "react";
 import { useFlashcardStore } from "../../store/useFlashcardStore.js";
@@ -26,6 +26,7 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
 
     // Drag and Drop states
     const [draggedWord, setDraggedWord] = useState(null);
+    const [draggedFromDropZone, setDraggedFromDropZone] = useState(null); // New state to track source
     const [dragOverZone, setDragOverZone] = useState(null);
 
     const englishLevel = getDefaultEnglishLevel();
@@ -110,6 +111,7 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
             setShowResult(false);
             setCorrectMatches({});
             setDraggedWord(null);
+            setDraggedFromDropZone(null);
             setDragOverZone(null);
 
         } catch (error) {
@@ -127,18 +129,36 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
         generateDescriptionsForSet(currentWords);
     }, [currentSetIndex]);
 
-    // Drag and Drop handlers
-    const handleDragStart = (e, wordIndex) => {
+    // НОВИЙ: Drag handlers для слів в draggable zone
+    const handleWordDragStart = (e, wordIndex) => {
         setDraggedWord(wordIndex);
+        setDraggedFromDropZone(null); // This is from draggable zone
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', e.target.outerHTML);
+        e.target.style.opacity = '0.5';
+    };
+
+    // НОВИЙ: Drag handlers для слів в drop zones
+    const handleDropZoneWordDragStart = (e, wordIndex, sourceDropZoneIndex) => {
+        setDraggedWord(wordIndex);
+        setDraggedFromDropZone(sourceDropZoneIndex); // This is from drop zone
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/html', e.target.outerHTML);
         e.target.style.opacity = '0.5';
     };
 
     const handleDragEnd = (e) => {
+        // Force reset all styles
         e.target.style.opacity = '1';
-        setDraggedWord(null);
-        setDragOverZone(null);
+        e.target.style.transform = 'scale(1)';
+        e.target.style.filter = 'none';
+
+        // Clear all drag states immediately
+        setTimeout(() => {
+            setDraggedWord(null);
+            setDraggedFromDropZone(null);
+            setDragOverZone(null);
+        }, 50);
     };
 
     const handleDragOver = (e) => {
@@ -162,17 +182,21 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
         e.preventDefault();
 
         if (draggedWord !== null && !showResult) {
-            // Remove word from any existing drop zone
             const newMatches = { ...matches };
 
-            // Remove this word from any previous drop zone
-            Object.keys(newMatches).forEach(zoneIndex => {
-                if (newMatches[zoneIndex] === draggedWord) {
-                    delete newMatches[zoneIndex];
-                }
-            });
+            // If word was dragged from a drop zone, clear that zone first
+            if (draggedFromDropZone !== null) {
+                delete newMatches[draggedFromDropZone];
+            } else {
+                // If word was dragged from draggable zone, remove it from any existing drop zone
+                Object.keys(newMatches).forEach(zoneIndex => {
+                    if (newMatches[zoneIndex] === draggedWord) {
+                        delete newMatches[zoneIndex];
+                    }
+                });
+            }
 
-            // Remove any word that was previously in this drop zone
+            // Remove any word that was previously in this target drop zone
             if (newMatches[dropZoneIndex] !== undefined) {
                 delete newMatches[dropZoneIndex];
             }
@@ -244,6 +268,11 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
 
     // Handle restart
     const handleRestart = () => {
+        // Clear all drag states
+        setDraggedWord(null);
+        setDraggedFromDropZone(null);
+        setDragOverZone(null);
+
         setCurrentSetIndex(0);
         setScore({ correct: 0, total: 0 });
     };
@@ -302,9 +331,12 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
                             <h2 className="text-xl font-semibold text-gray-900 mb-2">
                                 Перетягніть слова до відповідних описів
                             </h2>
-                            <div className="flex items-center justify-center text-gray-600 mb-4">
+                            <div className="flex items-center justify-center text-gray-600 mb-2">
                                 <Move className="w-5 h-5 mr-2" />
                                 <span>Перетягуйте слова в порожні поля навпроти описів</span>
+                            </div>
+                            <div className="text-sm text-blue-600 bg-blue-50 rounded-lg p-3 mt-4">
+                                💡 Підказка: Ви можете перетягувати слова як з нижньої зони, так і між полями описів
                             </div>
                         </div>
 
@@ -321,16 +353,16 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
                                         <div
                                             key={wordIndex}
                                             draggable={!showResult && !isPlaced}
-                                            onDragStart={(e) => handleDragStart(e, wordIndex)}
+                                            onDragStart={(e) => handleWordDragStart(e, wordIndex)}
                                             onDragEnd={handleDragEnd}
-                                            className={`px-6 py-4 rounded-xl border-2 font-medium transition-all duration-200 cursor-move select-none ${
+                                            className={`px-6 py-4 rounded-xl border-2 font-medium transition-all duration-200 select-none ${
                                                 showResult
                                                     ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-default'
                                                     : isPlaced
                                                         ? 'border-blue-500 bg-blue-50 text-blue-700 opacity-50 cursor-default'
-                                                        : draggedWord === wordIndex
-                                                            ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-lg scale-105'
-                                                            : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md'
+                                                        : draggedWord === wordIndex && draggedFromDropZone === null
+                                                            ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-lg scale-105 cursor-move'
+                                                            : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md cursor-move'
                                             }`}
                                         >
                                             <div className="flex items-center">
@@ -401,8 +433,26 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
                                                 className={dropZoneClass}
                                             >
                                                 {hasWord ? (
-                                                    <div className="flex items-center">
-                                                        <div className="text-lg font-bold text-gray-900">
+                                                    <div
+                                                        className={`flex items-center transition-all duration-200 ${
+                                                            !showResult ? 'cursor-move hover:opacity-90' : 'cursor-default'
+                                                        }`}
+                                                        style={{
+                                                            opacity: draggedWord === wordIndex && draggedFromDropZone === dropZoneIndex ? 0.6 : 1,
+                                                            transform: draggedWord === wordIndex && draggedFromDropZone === dropZoneIndex ? 'scale(0.95)' : 'scale(1)'
+                                                        }}
+                                                        draggable={!showResult}
+                                                        onDragStart={(e) => {
+                                                            if (!showResult) {
+                                                                handleDropZoneWordDragStart(e, wordIndex, dropZoneIndex);
+                                                            }
+                                                        }}
+                                                        onDragEnd={handleDragEnd}
+                                                    >
+                                                        {!showResult && (
+                                                            <GripVertical className="w-4 h-4 mr-2 text-gray-400" />
+                                                        )}
+                                                        <div className="text-lg font-bold text-black">
                                                             {wordsInCurrentSet[wordIndex]?.text}
                                                         </div>
                                                         {showResult && (

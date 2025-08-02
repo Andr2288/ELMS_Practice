@@ -61,6 +61,8 @@ const MultipleChoiceExercise = ({ practiceCards, onExit }) => {
         setCardAddedBack(false); // Скидаємо індикатор
 
         try {
+            setShowResult(false);
+
             // Generate new explanation different from existing ones
             const explanation = await generateFieldContent(
                 card.text,
@@ -85,7 +87,6 @@ const MultipleChoiceExercise = ({ practiceCards, onExit }) => {
             setAnswerOptions(shuffledOptions);
             setSelectedAnswer(null);
             setIsCorrect(null);
-            setShowResult(false);
         } catch (error) {
             console.error("Error generating question:", error);
             // Fallback to existing explanation if AI generation fails

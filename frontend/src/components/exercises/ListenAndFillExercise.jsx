@@ -74,6 +74,8 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
         setIsPlayingAudio(false);
 
         try {
+            setShowResult(false);
+
             console.log(`Generating question for word: "${card.text}"`);
 
             // Generate sentence data with new JSON format
@@ -137,7 +139,6 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
             setUserAnswer("");
             setSelectedAnswer(null);
             setIsCorrect(null);
-            setShowResult(false);
 
         } catch (error) {
             console.error("Error generating question:", error);
