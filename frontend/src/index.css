@@ -1,4 +1,4 @@
-/* frontend/src/index.css */
+/* frontend/src/index.css - ОНОВЛЕНІ СТИЛІ ДЛЯ НОВОГО ДИЗАЙНУ */
 
 @import "tailwindcss";
 @plugin "daisyui";
@@ -70,8 +70,6 @@
     transform: scale(1.02);
     box-shadow: 0 8px 25px rgba(168, 85, 247, 0.3);
 }
-
-/* Додайте ці стилі до вашого index.css файлу */
 
 /* Покращений скролбар для задньої сторони картки */
 .custom-scrollbar {
@@ -153,8 +151,6 @@
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* Додайте ці стилі до вашого index.css файлу */
-
 /* Стилі для клавіш швидкого доступу */
 kbd {
     display: inline-block;
@@ -204,20 +200,6 @@ kbd {
     }
 }
 
-/* Pulse effect for audio visualizer bars */
-@keyframes audio-pulse {
-    0%, 100% {
-        transform: scaleY(0.5);
-    }
-    50% {
-        transform: scaleY(1);
-    }
-}
-
-.audio-bar {
-    animation: audio-pulse 1s ease-in-out infinite;
-}
-
 /* Audio wave animation for playing state */
 @keyframes audio-wave {
     0%, 100% {
@@ -237,8 +219,6 @@ kbd {
 .audio-playing {
     animation: audio-wave 0.8s ease-in-out infinite;
 }
-
-/* Додати ці стилі до frontend/src/index.css */
 
 /* Drag and Drop стилі для MatchDescriptionsExercise */
 
@@ -400,20 +380,249 @@ kbd {
     opacity: 0;
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 /* Staggered animation для множинних елементів */
 .fade-in-up:nth-child(1) { animation-delay: 0.1s; }
 .fade-in-up:nth-child(2) { animation-delay: 0.2s; }
 .fade-in-up:nth-child(3) { animation-delay: 0.3s; }
 .fade-in-up:nth-child(4) { animation-delay: 0.4s; }
 .fade-in-up:nth-child(5) { animation-delay: 0.5s; }
+
+/* ===== НОВІ СТИЛІ ДЛЯ ОНОВЛЕНОГО ДИЗАЙНУ PRACTICE PAGE ===== */
+
+/* Анімації для карток вправ */
+@keyframes practice-card-hover {
+    0% {
+        transform: translateY(0) scale(1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    100% {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+}
+
+.practice-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.practice-card:hover {
+    animation: practice-card-hover 0.3s ease-out forwards;
+}
+
+/* Градієнтні кнопки з hover ефектами */
+.gradient-button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.gradient-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.gradient-button:hover::before {
+    left: 100%;
+}
+
+/* Плавна анімація для progress bar */
+@keyframes progress-fill {
+    0% {
+        width: 0%;
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.progress-bar {
+    animation: progress-fill 1s ease-out;
+}
+
+/* Анімації для статистики */
+@keyframes stat-counter {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.stat-number {
+    animation: stat-counter 0.6s ease-out;
+}
+
+/* Покращені backdrop blur ефекти */
+.backdrop-blur-custom {
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Анімації для табів */
+.tab-indicator {
+    position: relative;
+}
+
+.tab-indicator::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.tab-indicator.active::after {
+    transform: scaleX(1);
+}
+
+/* Floating elements effect */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.floating-element {
+    animation: float 3s ease-in-out infinite;
+}
+
+/* Гладкі градієнти для фонів */
+.gradient-bg-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-bg-secondary {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.gradient-bg-success {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+/* Покращені тіні */
+.shadow-custom {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-custom-lg {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Анімація для іконок */
+@keyframes icon-bounce {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.icon-bounce:hover {
+    animation: icon-bounce 0.6s ease-in-out;
+}
+
+/* Покращені border радіуси */
+.rounded-custom {
+    border-radius: 1.5rem;
+}
+
+.rounded-custom-lg {
+    border-radius: 2rem;
+}
+
+/* Анімація появи для карток */
+@keyframes slide-in-up {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.slide-in-up {
+    animation: slide-in-up 0.6s ease-out;
+}
+
+/* Staggered анімація для груп елементів */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+/* Responsive покращення */
+@media (max-width: 640px) {
+    .practice-card {
+        padding: 1.5rem;
+    }
+
+    .gradient-button {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.875rem;
+    }
+
+    .stat-number {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .backdrop-blur-custom {
+        backdrop-filter: blur(8px);
+    }
+}
+
+/* Темна тема підтримка (якщо потрібно в майбутньому) */
+@media (prefers-color-scheme: dark) {
+    .backdrop-blur-custom {
+        background: rgba(17, 24, 39, 0.8);
+        border: 1px solid rgba(55, 65, 81, 0.3);
+    }
+}
+
+/* Accessibility покращення */
+@media (prefers-reduced-motion: reduce) {
+    .practice-card,
+    .gradient-button,
+    .floating-element,
+    .slide-in-up {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* Focus states для кращої доступності */
+.practice-card:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.gradient-button:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
