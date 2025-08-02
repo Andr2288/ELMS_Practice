@@ -455,7 +455,7 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                 {/* Progress */}
                 <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
                     <span>Питання {currentCardIndex + 1} з {practiceCards.length}</span>
-                    <span>Правильно: {score.correct} з {score.total}</span>
+                    <span>Правильно: {score.correct} з {practiceCards.length}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
@@ -468,7 +468,7 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
             </div>
 
             {/* Question */}
-            <div className="bg-white rounded-2xl shadow-md p-8 h-full">
+            <div className="bg-white rounded-2xl shadow-md p-8 mb-6 h-full">
                 {isLoading ? (
                     <div className="text-center py-12">
                         <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
