@@ -48,8 +48,8 @@ const PracticePage = () => {
         }
 
         // Check minimum cards for specific exercises
-        if (exerciseType === 'multiple-choice' && practiceCards.length < 3) {
-            alert('Для цієї вправи потрібно мінімум 3 картки. У вас є тільки ' + practiceCards.length + '.');
+        if (exerciseType === 'multiple-choice' && practiceCards.length < 4) {
+            alert('Для цієї вправи потрібно мінімум 4 картки для створення 4 варіантів відповіді. У вас є тільки ' + practiceCards.length + '.');
             return;
         }
 
@@ -301,7 +301,7 @@ const PracticePage = () => {
                                 </div>
                                 <h3 className="text-lg font-bold text-gray-900 mb-2">Обрати варіант</h3>
                                 <p className="text-gray-600 mb-4">
-                                    Оберіть правильне слово на основі детального пояснення
+                                    Оберіть правильне слово з 4 варіантів на основі детального пояснення
                                 </p>
                                 <div className="flex items-center text-sm text-gray-500">
                                     <Brain className="w-4 h-4 mr-2" />

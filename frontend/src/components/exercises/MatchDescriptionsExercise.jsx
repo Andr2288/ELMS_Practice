@@ -1,12 +1,12 @@
-// frontend/src/components/exercises/MatchDescriptionsExercise.jsx
+// frontend/src/components/exercises/MatchDescriptionsExercise.jsx - DRAG AND DROP VERSION
 
 import { useState, useEffect } from "react";
 import { useFlashcardStore } from "../../store/useFlashcardStore.js";
 import { useUserSettingsStore } from "../../store/useUserSettingsStore.js";
 import {
     CheckCircle, XCircle, ArrowRight, RotateCcw,
-    Shuffle, Loader, Home, Trophy, Link2,
-    Target, AlertCircle
+    Shuffle, Loader, Home, Trophy, Move,
+    Target, AlertCircle, GripVertical
 } from "lucide-react";
 
 const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
@@ -17,13 +17,16 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
     const [wordsInCurrentSet, setWordsInCurrentSet] = useState([]);
     const [descriptions, setDescriptions] = useState([]);
     const [shuffledDescriptions, setShuffledDescriptions] = useState([]);
-    const [matches, setMatches] = useState({}); // {wordIndex: descriptionIndex}
-    const [selectedWord, setSelectedWord] = useState(null);
+    const [matches, setMatches] = useState({}); // {dropZoneIndex: wordIndex}
     const [isLoading, setIsLoading] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
     const [showResult, setShowResult] = useState(false);
     const [correctMatches, setCorrectMatches] = useState({});
     const [score, setScore] = useState({ correct: 0, total: 0 });
+
+    // Drag and Drop states
+    const [draggedWord, setDraggedWord] = useState(null);
+    const [dragOverZone, setDragOverZone] = useState(null);
 
     const englishLevel = getDefaultEnglishLevel();
     const wordsPerSet = 3;
@@ -102,11 +105,12 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
             const shuffled = [...descriptionsWithIndices].sort(() => Math.random() - 0.5);
             setShuffledDescriptions(shuffled);
 
-            // Reset matches
+            // Reset matches and states
             setMatches({});
-            setSelectedWord(null);
             setShowResult(false);
             setCorrectMatches({});
+            setDraggedWord(null);
+            setDragOverZone(null);
 
         } catch (error) {
             console.error("Error generating descriptions:", error);
@@ -123,40 +127,78 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
         generateDescriptionsForSet(currentWords);
     }, [currentSetIndex]);
 
-    // Handle word selection
-    const handleWordClick = (wordIndex) => {
-        if (showResult) return;
+    // Drag and Drop handlers
+    const handleDragStart = (e, wordIndex) => {
+        setDraggedWord(wordIndex);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', e.target.outerHTML);
+        e.target.style.opacity = '0.5';
+    };
 
-        // If this word is already matched, remove the match
-        if (matches[wordIndex] !== undefined) {
-            const newMatches = { ...matches };
-            delete newMatches[wordIndex];
-            setMatches(newMatches);
-            setSelectedWord(null);
-        } else {
-            setSelectedWord(wordIndex);
+    const handleDragEnd = (e) => {
+        e.target.style.opacity = '1';
+        setDraggedWord(null);
+        setDragOverZone(null);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDragEnter = (e, dropZoneIndex) => {
+        e.preventDefault();
+        setDragOverZone(dropZoneIndex);
+    };
+
+    const handleDragLeave = (e) => {
+        // Only clear drag over if we're actually leaving the drop zone
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+            setDragOverZone(null);
         }
     };
 
-    // Handle description selection
-    const handleDescriptionClick = (shuffledDescIndex) => {
-        if (showResult || selectedWord === null) return;
+    const handleDrop = (e, dropZoneIndex) => {
+        e.preventDefault();
 
-        // Check if this description is already matched
-        const isAlreadyMatched = Object.values(matches).includes(shuffledDescIndex);
-        if (isAlreadyMatched) return;
+        if (draggedWord !== null && !showResult) {
+            // Remove word from any existing drop zone
+            const newMatches = { ...matches };
 
-        // Create the match
-        setMatches({
-            ...matches,
-            [selectedWord]: shuffledDescIndex
-        });
-        setSelectedWord(null);
+            // Remove this word from any previous drop zone
+            Object.keys(newMatches).forEach(zoneIndex => {
+                if (newMatches[zoneIndex] === draggedWord) {
+                    delete newMatches[zoneIndex];
+                }
+            });
+
+            // Remove any word that was previously in this drop zone
+            if (newMatches[dropZoneIndex] !== undefined) {
+                delete newMatches[dropZoneIndex];
+            }
+
+            // Add the word to the new drop zone
+            newMatches[dropZoneIndex] = draggedWord;
+
+            setMatches(newMatches);
+        }
+
+        setDragOverZone(null);
+    };
+
+    // Check if word is currently placed in a drop zone
+    const isWordPlaced = (wordIndex) => {
+        return Object.values(matches).includes(wordIndex);
+    };
+
+    // Get word placed in specific drop zone
+    const getWordInDropZone = (dropZoneIndex) => {
+        return matches[dropZoneIndex];
     };
 
     // Check if all words are matched
     const areAllMatched = () => {
-        return wordsInCurrentSet.every((_, index) => matches[index] !== undefined);
+        return wordsInCurrentSet.every((_, index) => Object.values(matches).includes(index));
     };
 
     // Handle submit
@@ -167,13 +209,14 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
         const correct = {};
         let correctCount = 0;
 
-        wordsInCurrentSet.forEach((word, wordIndex) => {
-            const selectedDescIndex = matches[wordIndex];
-            const selectedDesc = shuffledDescriptions[selectedDescIndex];
-            const isCorrect = selectedDesc.originalIndex === wordIndex;
-
-            correct[wordIndex] = isCorrect;
-            if (isCorrect) correctCount++;
+        // For each drop zone, check if the correct word is placed
+        shuffledDescriptions.forEach((descItem, dropZoneIndex) => {
+            const wordIndex = matches[dropZoneIndex];
+            if (wordIndex !== undefined) {
+                const isCorrect = descItem.originalIndex === wordIndex;
+                correct[dropZoneIndex] = isCorrect;
+                if (isCorrect) correctCount++;
+            }
         });
 
         setCorrectMatches(correct);
@@ -205,18 +248,6 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
         setScore({ correct: 0, total: 0 });
     };
 
-    // Get match line coordinates (simplified version)
-    const getConnectionClass = (wordIndex, descriptionIndex) => {
-        const selectedDescIndex = matches[wordIndex];
-        if (selectedDescIndex === descriptionIndex) {
-            if (showResult) {
-                return correctMatches[wordIndex] ? 'border-green-500' : 'border-red-500';
-            }
-            return 'border-blue-500';
-        }
-        return '';
-    };
-
     return (
         <div className="max-w-6xl mx-auto">
             {/* Header */}
@@ -228,7 +259,7 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Поєднати з описом</h1>
-                            <p className="text-gray-600">З'єднайте слова з їхніми описами</p>
+                            <p className="text-gray-600">Перетягніть слова до відповідних описів</p>
                         </div>
                     </div>
                     <button
@@ -269,87 +300,136 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
                         {/* Instructions */}
                         <div className="text-center mb-8">
                             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                                Поєднайте слова з їхніми описами
+                                Перетягніть слова до відповідних описів
                             </h2>
                             <div className="flex items-center justify-center text-gray-600 mb-4">
-                                <Target className="w-5 h-5 mr-2" />
-                                <span>Натисніть на слово, потім на відповідний опис</span>
+                                <Move className="w-5 h-5 mr-2" />
+                                <span>Перетягуйте слова в порожні поля навпроти описів</span>
                             </div>
-                            {selectedWord !== null && (
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 inline-block">
-                                    <div className="flex items-center text-blue-800">
-                                        <Link2 className="w-4 h-4 mr-2" />
-                                        <span>Обрано слово: <strong>{wordsInCurrentSet[selectedWord]?.text}</strong></span>
-                                    </div>
-                                </div>
+                        </div>
+
+                        {/* Draggable Words */}
+                        <div className="mb-8">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+                                Слова для перетягування
+                            </h3>
+                            <div className="flex flex-wrap justify-center gap-4">
+                                {wordsInCurrentSet.map((word, wordIndex) => {
+                                    const isPlaced = isWordPlaced(wordIndex);
+
+                                    return (
+                                        <div
+                                            key={wordIndex}
+                                            draggable={!showResult && !isPlaced}
+                                            onDragStart={(e) => handleDragStart(e, wordIndex)}
+                                            onDragEnd={handleDragEnd}
+                                            className={`px-6 py-4 rounded-xl border-2 font-medium transition-all duration-200 cursor-move select-none ${
+                                                showResult
+                                                    ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-default'
+                                                    : isPlaced
+                                                        ? 'border-blue-500 bg-blue-50 text-blue-700 opacity-50 cursor-default'
+                                                        : draggedWord === wordIndex
+                                                            ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-lg scale-105'
+                                                            : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md'
+                                            }`}
+                                        >
+                                            <div className="flex items-center">
+                                                {!showResult && !isPlaced && (
+                                                    <GripVertical className="w-4 h-4 mr-2 text-gray-400" />
+                                                )}
+                                                <div>
+                                                    <div className="text-lg font-bold">
+                                                        {word.text}
+                                                    </div>
+                                                    {word.transcription && (
+                                                        <div className="text-sm text-gray-500">
+                                                            {word.transcription}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {wordsInCurrentSet.some((_, index) => isWordPlaced(index)) && (
+                                <p className="text-center text-sm text-gray-500 mt-4">
+                                    Розміщені слова стають напівпрозорими
+                                </p>
                             )}
                         </div>
 
-                        {/* Matching Interface */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            {/* Words Column */}
+                        {/* Matching Interface - Two Columns */}
+                        <div className="grid grid-cols-2 gap-8">
+                            {/* Drop Zones Column */}
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                                    Слова
+                                    Перетягніть сюди
                                 </h3>
-                                <div className="space-y-3">
-                                    {wordsInCurrentSet.map((word, wordIndex) => {
-                                        const isSelected = selectedWord === wordIndex;
-                                        const isMatched = matches[wordIndex] !== undefined;
-                                        const isCorrect = showResult ? correctMatches[wordIndex] : null;
+                                <div className="space-y-4">
+                                    {shuffledDescriptions.map((item, dropZoneIndex) => {
+                                        const wordIndex = getWordInDropZone(dropZoneIndex);
+                                        const hasWord = wordIndex !== undefined;
+                                        const isCorrect = showResult ? correctMatches[dropZoneIndex] : null;
+                                        const isDragOver = dragOverZone === dropZoneIndex;
 
-                                        let buttonClass = "w-full p-4 text-left rounded-xl border-2 transition-all duration-200 font-medium ";
+                                        let dropZoneClass = "h-24 p-4 rounded-xl border-2 border-dashed transition-all duration-200 flex items-center justify-center ";
 
                                         if (showResult) {
                                             if (isCorrect === true) {
-                                                buttonClass += "border-green-500 bg-green-50 text-green-700";
+                                                dropZoneClass += "border-green-500 bg-green-50";
                                             } else if (isCorrect === false) {
-                                                buttonClass += "border-red-500 bg-red-50 text-red-700";
+                                                dropZoneClass += "border-red-500 bg-red-50";
                                             } else {
-                                                buttonClass += "border-gray-200 bg-gray-50 text-gray-500";
+                                                dropZoneClass += "border-gray-200 bg-gray-50";
                                             }
-                                        } else if (isMatched) {
-                                            buttonClass += "border-blue-500 bg-blue-50 text-blue-700";
-                                        } else if (isSelected) {
-                                            buttonClass += "border-purple-500 bg-purple-50 text-purple-700 shadow-lg scale-105";
+                                        } else if (isDragOver) {
+                                            dropZoneClass += "border-purple-500 bg-purple-100 scale-105";
+                                        } else if (hasWord) {
+                                            dropZoneClass += "border-blue-500 bg-blue-50";
                                         } else {
-                                            buttonClass += "border-gray-300 hover:border-blue-300 hover:bg-blue-50 text-gray-700 cursor-pointer";
+                                            dropZoneClass += "border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-50";
                                         }
 
                                         return (
-                                            <button
-                                                key={wordIndex}
-                                                onClick={() => handleWordClick(wordIndex)}
-                                                className={buttonClass}
-                                                disabled={showResult}
+                                            <div
+                                                key={dropZoneIndex}
+                                                onDragOver={handleDragOver}
+                                                onDragEnter={(e) => handleDragEnter(e, dropZoneIndex)}
+                                                onDragLeave={handleDragLeave}
+                                                onDrop={(e) => handleDrop(e, dropZoneIndex)}
+                                                className={dropZoneClass}
                                             >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <div className="text-xl font-bold mb-1">
-                                                            {word.text}
+                                                {hasWord ? (
+                                                    <div className="flex items-center">
+                                                        <div className="text-lg font-bold text-gray-900">
+                                                            {wordsInCurrentSet[wordIndex]?.text}
                                                         </div>
-                                                        {word.transcription && (
-                                                            <div className="text-sm text-gray-500">
-                                                                {word.transcription}
+                                                        {showResult && (
+                                                            <div className="ml-3">
+                                                                {isCorrect === true ? (
+                                                                    <CheckCircle className="w-6 h-6 text-green-600" />
+                                                                ) : (
+                                                                    <XCircle className="w-6 h-6 text-red-600" />
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center">
-                                                        {showResult && isCorrect === true && (
-                                                            <CheckCircle className="w-6 h-6 text-green-600" />
-                                                        )}
-                                                        {showResult && isCorrect === false && (
-                                                            <XCircle className="w-6 h-6 text-red-600" />
-                                                        )}
-                                                        {!showResult && isMatched && (
-                                                            <Link2 className="w-5 h-5 text-blue-600" />
-                                                        )}
-                                                        {!showResult && isSelected && (
-                                                            <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse" />
+                                                ) : (
+                                                    <div className="text-gray-400 text-center">
+                                                        {isDragOver ? (
+                                                            <div className="text-purple-600 font-medium">
+                                                                Відпустіть тут
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center">
+                                                                <Target className="w-5 h-5 mr-2" />
+                                                                <span>Перетягніть слово</span>
+                                                            </div>
                                                         )}
                                                     </div>
-                                                </div>
-                                            </button>
+                                                )}
+                                            </div>
                                         );
                                     })}
                                 </div>
@@ -360,57 +440,31 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
                                     Описи
                                 </h3>
-                                <div className="space-y-3">
-                                    {shuffledDescriptions.map((item, shuffledIndex) => {
-                                        const isMatched = Object.values(matches).includes(shuffledIndex);
-                                        const matchedWordIndex = Object.keys(matches).find(
-                                            key => matches[key] === shuffledIndex
-                                        );
-                                        const isCorrectMatch = showResult && matchedWordIndex !== undefined ?
-                                            correctMatches[matchedWordIndex] : null;
+                                <div className="space-y-4">
+                                    {shuffledDescriptions.map((item, index) => {
+                                        const isCorrectlyMatched = showResult ? correctMatches[index] === true : false;
+                                        const isWronglyMatched = showResult ? correctMatches[index] === false : false;
 
-                                        let buttonClass = "w-full p-4 text-left rounded-xl border-2 transition-all duration-200 ";
+                                        let descClass = "h-24 p-4 rounded-xl border transition-all duration-200 flex items-center ";
 
                                         if (showResult) {
-                                            if (isCorrectMatch === true) {
-                                                buttonClass += "border-green-500 bg-green-50 text-green-700";
-                                            } else if (isCorrectMatch === false) {
-                                                buttonClass += "border-red-500 bg-red-50 text-red-700";
+                                            if (isCorrectlyMatched) {
+                                                descClass += "border-green-200 bg-green-50";
+                                            } else if (isWronglyMatched) {
+                                                descClass += "border-red-200 bg-red-50";
                                             } else {
-                                                buttonClass += "border-gray-200 bg-gray-50 text-gray-500";
+                                                descClass += "border-gray-200 bg-gray-50";
                                             }
-                                        } else if (isMatched) {
-                                            buttonClass += "border-blue-500 bg-blue-50 text-blue-700";
-                                        } else if (selectedWord !== null) {
-                                            buttonClass += "border-gray-300 hover:border-purple-300 hover:bg-purple-50 text-gray-700 cursor-pointer";
                                         } else {
-                                            buttonClass += "border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed";
+                                            descClass += "border-gray-200 bg-white";
                                         }
 
                                         return (
-                                            <button
-                                                key={shuffledIndex}
-                                                onClick={() => handleDescriptionClick(shuffledIndex)}
-                                                className={buttonClass}
-                                                disabled={showResult || selectedWord === null || isMatched}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div className="text-base leading-relaxed pr-4">
-                                                        {item.description}
-                                                    </div>
-                                                    <div>
-                                                        {showResult && isCorrectMatch === true && (
-                                                            <CheckCircle className="w-6 h-6 text-green-600" />
-                                                        )}
-                                                        {showResult && isCorrectMatch === false && (
-                                                            <XCircle className="w-6 h-6 text-red-600" />
-                                                        )}
-                                                        {!showResult && isMatched && (
-                                                            <Link2 className="w-5 h-5 text-blue-600" />
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </button>
+                                            <div key={index} className={descClass}>
+                                                <p className="text-base leading-relaxed text-gray-800 text-center w-full">
+                                                    {item.description}
+                                                </p>
+                                            </div>
                                         );
                                     })}
                                 </div>
@@ -432,7 +486,7 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
                                 {!areAllMatched() && (
                                     <div className="flex items-center justify-center text-sm text-gray-500 mt-2">
                                         <AlertCircle className="w-4 h-4 mr-1" />
-                                        <span>Поєднайте всі слова з описами</span>
+                                        <span>Перетягніть всі слова до описів</span>
                                     </div>
                                 )}
                             </div>
@@ -443,14 +497,15 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
                             <div className="mt-8 p-6 bg-gray-50 rounded-xl">
                                 <h3 className="text-lg font-semibold mb-4 text-center">Результат набору</h3>
                                 <div className="grid gap-3">
-                                    {wordsInCurrentSet.map((word, wordIndex) => {
-                                        const isCorrect = correctMatches[wordIndex];
-                                        const selectedDescIndex = matches[wordIndex];
-                                        const selectedDesc = shuffledDescriptions[selectedDescIndex];
+                                    {shuffledDescriptions.map((item, dropZoneIndex) => {
+                                        const wordIndex = getWordInDropZone(dropZoneIndex);
+                                        const isCorrect = correctMatches[dropZoneIndex];
+                                        const word = wordIndex !== undefined ? wordsInCurrentSet[wordIndex] : null;
+                                        const correctWord = wordsInCurrentSet[item.originalIndex];
 
                                         return (
                                             <div
-                                                key={wordIndex}
+                                                key={dropZoneIndex}
                                                 className={`p-3 rounded-lg border ${
                                                     isCorrect
                                                         ? 'border-green-200 bg-green-50'
@@ -466,20 +521,22 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
                                                         )}
                                                     </div>
                                                     <div className="flex-1">
-                                                        <div className="font-bold text-gray-900 mb-1">
-                                                            {word.text}
-                                                        </div>
                                                         <div className="text-sm text-gray-600 mb-2">
-                                                            Ваш вибір: "{selectedDesc.description}"
+                                                            Опис: "{item.description}"
                                                         </div>
-                                                        {!isCorrect && (
-                                                            <div className="text-sm text-green-700">
-                                                                Правильний опис: "{descriptions[wordIndex]}"
+                                                        {word && (
+                                                            <div className="font-bold text-gray-900 mb-1">
+                                                                Ваш вибір: {word.text}
                                                             </div>
                                                         )}
-                                                        {word.translation && (
+                                                        {!isCorrect && (
+                                                            <div className="text-sm text-green-700">
+                                                                Правильна відповідь: {correctWord.text}
+                                                            </div>
+                                                        )}
+                                                        {correctWord.translation && (
                                                             <div className="text-xs text-gray-500 mt-1">
-                                                                Переклад: {word.translation}
+                                                                Переклад: {correctWord.translation}
                                                             </div>
                                                         )}
                                                     </div>

@@ -237,3 +237,183 @@ kbd {
 .audio-playing {
     animation: audio-wave 0.8s ease-in-out infinite;
 }
+
+/* Додати ці стилі до frontend/src/index.css */
+
+/* Drag and Drop стилі для MatchDescriptionsExercise */
+
+/* Стилі для draggable елементів */
+.draggable {
+    cursor: move;
+    transition: all 0.2s ease-in-out;
+}
+
+.draggable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.draggable.dragging {
+    opacity: 0.5;
+    transform: rotate(2deg) scale(1.05);
+    z-index: 1000;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Стилі для drop zones */
+.drop-zone {
+    transition: all 0.3s ease-in-out;
+    position: relative;
+}
+
+.drop-zone.drag-over {
+    transform: scale(1.02);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+    border-color: #a855f7 !important;
+    background-color: rgba(168, 85, 247, 0.1) !important;
+}
+
+.drop-zone.filled {
+    transform: none;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.drop-zone.correct {
+    animation: success-pulse 0.6s ease-out;
+}
+
+.drop-zone.incorrect {
+    animation: error-shake 0.5s ease-out;
+}
+
+/* Анімації для результатів */
+@keyframes success-pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes error-shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+/* Стилі для ghost drag image */
+.drag-ghost {
+    opacity: 0.8;
+    transform: rotate(5deg);
+    pointer-events: none;
+}
+
+/* Responsive adjustments для drag and drop */
+@media (max-width: 768px) {
+    .draggable {
+        touch-action: none;
+        user-select: none;
+    }
+
+    .drop-zone {
+        min-height: 60px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Покращення accessibility */
+.draggable:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.drop-zone:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Стилі для індикаторів стану */
+.word-placed {
+    opacity: 0.6;
+    filter: grayscale(30%);
+    cursor: default;
+}
+
+.word-available {
+    opacity: 1;
+    filter: none;
+    cursor: move;
+}
+
+/* Градієнтні фони для різних станів */
+.drop-zone-empty {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.drop-zone-filled {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.drop-zone-correct {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+}
+
+.drop-zone-incorrect {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+}
+
+/* Smooth transitions для всіх interactive елементів */
+.interactive-element {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Стилі для grip handle */
+.grip-handle {
+    opacity: 0.4;
+    transition: opacity 0.2s ease;
+}
+
+.draggable:hover .grip-handle {
+    opacity: 0.8;
+}
+
+/* Покращені hover ефекти */
+.hover-lift:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Анімація для появи елементів */
+.fade-in-up {
+    animation: fadeInUp 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Staggered animation для множинних елементів */
+.fade-in-up:nth-child(1) { animation-delay: 0.1s; }
+.fade-in-up:nth-child(2) { animation-delay: 0.2s; }
+.fade-in-up:nth-child(3) { animation-delay: 0.3s; }
+.fade-in-up:nth-child(4) { animation-delay: 0.4s; }
+.fade-in-up:nth-child(5) { animation-delay: 0.5s; }
