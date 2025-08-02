@@ -103,21 +103,43 @@ Create a similar indirect description for: "${text}"`;
             case "examples": // НОВИЙ ТИП: генерація 3 прикладів
                 prompt = `Create 3 different example sentences using the word/phrase: "${text}". English level you must to use in your output: ${englishLevel}. Each sentence should show different contexts or meanings. Return as a JSON array of strings.`;
                 break;
-            case "sentenceWithGap": // НОВИЙ ТИП: генерація речення з пропуском для вправи слухання
-                prompt = `Create a natural sentence with a gap where the word "${text}" should be placed. 
-                English level you must to use in your output: ${englishLevel}.
-                
-                Requirements:
-                - The sentence should be 8-15 words long
-                - Use "____" (four underscores) as the gap placeholder
-                - The sentence should provide enough context to guess the missing word
-                - The word "${text}" should fit naturally in the gap
-                - Make the sentence realistic and conversational
-                - Don't make it too obvious or too difficult for ${englishLevel} level
-                
-                Return ONLY the sentence with the gap, nothing else.
-                
-                Example format: "I need to ____ my homework before dinner."`;
+            case "sentenceWithGap": // ОНОВЛЕНИЙ ТИП: JSON формат для вправи слухання
+                prompt = `Create a listening exercise for the word "${text}". English level: ${englishLevel}.
+
+Return a JSON object with this exact structure:
+{
+  "displaySentence": "sentence with ____ gap",
+  "audioSentence": "complete correct sentence for TTS",
+  "correctForm": "correct form of the word that fits",
+  "hint": "optional grammar hint if word form changes"
+}
+
+Requirements:
+- displaySentence: Use "____" (four underscores) as placeholder, 8-15 words total
+- audioSentence: Complete grammatically correct sentence for pronunciation
+- correctForm: The actual form of "${text}" that fits (may be different due to tense, plural, etc.)
+- hint: Only if word form changes (e.g., "past tense" or "plural form")
+- Sentence should provide enough context for ${englishLevel} level
+- Make it natural and conversational
+- Don't make it too obvious or too difficult
+
+Example for word "go":
+{
+  "displaySentence": "I ____ to the store yesterday afternoon.",
+  "audioSentence": "I went to the store yesterday afternoon.",
+  "correctForm": "went",
+  "hint": "past tense"
+}
+
+Example for word "book" (noun):
+{
+  "displaySentence": "She is reading a very interesting ____.",
+  "audioSentence": "She is reading a very interesting book.",
+  "correctForm": "book",
+  "hint": ""
+}
+
+Create exercise for: "${text}"`;
                 break;
             case "transcription":
                 prompt = `You are integrated in English LMS. Provide me with the transcription for: ${text}. Resources: Oxford Learner's Dictionaries. String format example for output: UK: [ˌjuːnɪˈvɜːsəti]; US: [ˌjuːnɪˈvɜːrsəti];`;
@@ -225,8 +247,60 @@ Create a similar indirect description for: "${text}"`;
                     .filter(line => line.length > 0)
                     .slice(0, 3);
             }
-        } else if (promptType === "sentenceWithGap" || promptType === "matchingDescription") {
-            // Для генерації речення з пропуском та опису для поєднання просто очищуємо відповідь
+        } else if (promptType === "sentenceWithGap") {
+            // ОНОВЛЕНО: Для генерації речення з пропуском парсимо як JSON об'єкт
+            try {
+                // Спочатку намагаємось знайти JSON об'єкт в відповіді
+                const jsonMatch = aiResponse.match(/{[\s\S]*?}/) || aiResponse.match(/```json\n([\s\S]*?)\n```/);
+                if (jsonMatch) {
+                    const jsonStr = jsonMatch[0].replace(/```json|```/g, '');
+                    parsedResponse = JSON.parse(jsonStr);
+
+                    // Валідація обов'язкових полів
+                    if (!parsedResponse.displaySentence || !parsedResponse.audioSentence || !parsedResponse.correctForm) {
+                        throw new Error("Missing required fields in JSON response");
+                    }
+
+                    // Забезпечуємо що displaySentence містить пропуск
+                    if (!parsedResponse.displaySentence.includes('____')) {
+                        throw new Error("Display sentence doesn't contain gap placeholder");
+                    }
+
+                    // Забезпечуємо що hint існує (може бути порожнім)
+                    if (parsedResponse.hint === undefined) {
+                        parsedResponse.hint = "";
+                    }
+
+                    console.log("Successfully parsed sentenceWithGap JSON:", parsedResponse);
+                } else {
+                    throw new Error("No JSON found in response");
+                }
+            } catch (error) {
+                console.log("Error parsing sentenceWithGap response as JSON:", error);
+                console.log("Raw AI response:", aiResponse);
+
+                // Fallback - створюємо простий об'єкт з базовими даними
+                const cleanResponse = aiResponse.trim().replace(/^["']|["']$/g, '');
+                let displaySentence, audioSentence;
+
+                if (cleanResponse.includes('____')) {
+                    displaySentence = cleanResponse;
+                    audioSentence = cleanResponse.replace(/____/g, text);
+                } else {
+                    displaySentence = `I need to ____ this word.`;
+                    audioSentence = `I need to ${text} this word.`;
+                }
+
+                parsedResponse = {
+                    displaySentence: displaySentence,
+                    audioSentence: audioSentence,
+                    correctForm: text,
+                    hint: ""
+                };
+                console.log("Using fallback sentenceWithGap format:", parsedResponse);
+            }
+        } else if (promptType === "matchingDescription") {
+            // Для генерації опису для поєднання просто очищуємо відповідь
             parsedResponse = aiResponse.trim().replace(/^["']|["']$/g, '');
         }
 

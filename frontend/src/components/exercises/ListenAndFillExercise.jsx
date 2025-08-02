@@ -1,4 +1,4 @@
-// frontend/src/components/exercises/ListenAndFillExercise.jsx
+// frontend/src/components/exercises/ListenAndFillExercise.jsx - ВИПРАВЛЕНА ВЕРСІЯ
 
 import { useState, useEffect, useRef } from "react";
 import { useFlashcardStore } from "../../store/useFlashcardStore.js";
@@ -7,7 +7,7 @@ import { axiosInstance } from "../../lib/axios.js";
 import {
     CheckCircle, XCircle, ArrowRight, RotateCcw,
     Volume2, Loader, Home, Trophy, VolumeX,
-    Headphones, Type, Play, Pause
+    Headphones, Type, Play, Pause, HelpCircle
 } from "lucide-react";
 
 const ListenAndFillExercise = ({ practiceCards, onExit }) => {
@@ -15,7 +15,7 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
     const { getDefaultEnglishLevel, getTTSSettings } = useUserSettingsStore();
 
     const [currentCardIndex, setCurrentCardIndex] = useState(0);
-    const [currentSentence, setCurrentSentence] = useState("");
+    const [exerciseData, setExerciseData] = useState(null); // JSON дані від ШІ
     const [userAnswer, setUserAnswer] = useState("");
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [isCorrect, setIsCorrect] = useState(null);
@@ -35,7 +35,6 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
 
     const currentCard = practiceCards[currentCardIndex];
     const englishLevel = getDefaultEnglishLevel();
-    const ttsSettings = getTTSSettings();
 
     // Check if we have enough cards for the exercise
     if (practiceCards.length === 0) {
@@ -46,7 +45,7 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                         Немає карток
                     </h3>
                     <p className="text-yellow-700">
-                        Для цієї вправи потрібен хоча б одна картка.
+                        Для цієї вправи потрібна хоча б одна картка.
                     </p>
                 </div>
                 <button
@@ -77,69 +76,118 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
         try {
             console.log(`Generating question for word: "${card.text}"`);
 
-            // Generate sentence with gap
-            const sentence = await generateFieldContent(
+            // Generate sentence data with new JSON format
+            const response = await generateFieldContent(
                 card.text,
                 englishLevel,
                 "sentenceWithGap"
             );
 
-            // Validate that sentence contains gap
-            if (!sentence || !sentence.includes('____')) {
-                throw new Error("Generated sentence doesn't contain gap");
+            let exerciseData;
+
+            // ВИПРАВЛЕНО: response вже має бути об'єктом, якщо backend працює правильно
+            if (typeof response === 'object' && response !== null) {
+                exerciseData = response;
+                console.log('Received exercise data from API:', exerciseData);
+            } else if (typeof response === 'string') {
+                // Fallback: якщо прийшов рядок, намагаємось парсити як JSON
+                try {
+                    exerciseData = JSON.parse(response);
+                    console.log('Parsed exercise data from string:', exerciseData);
+                } catch (parseError) {
+                    console.error("Failed to parse string response as JSON:", parseError);
+                    throw new Error("Invalid response format from AI");
+                }
+            } else {
+                throw new Error("Invalid response type from AI");
             }
 
-            console.log(`Generated sentence with gap: "${sentence}"`);
+            // Валідація обов'язкових полів
+            if (!exerciseData || typeof exerciseData !== 'object') {
+                throw new Error("Exercise data is not an object");
+            }
 
-            // Create complete sentence for TTS (replace gap with actual word)
-            const completeSentence = sentence.replace(/____/g, card.text);
-            console.log(`Complete sentence for TTS: "${completeSentence}"`);
+            if (!exerciseData.displaySentence || !exerciseData.audioSentence || !exerciseData.correctForm) {
+                console.error("Missing required fields:", exerciseData);
+                throw new Error("Missing required fields in exercise data");
+            }
 
-            // Set the visual sentence first
-            setCurrentSentence(sentence);
+            // Перевірка що displaySentence містить пропуск
+            if (!exerciseData.displaySentence.includes('____')) {
+                console.error("Display sentence doesn't contain gap:", exerciseData.displaySentence);
+                throw new Error("Display sentence doesn't contain gap");
+            }
+
+            // Забезпечуємо що hint існує
+            if (!exerciseData.hint) {
+                exerciseData.hint = "";
+            }
+
+            console.log('Successfully validated exercise data:', exerciseData);
+
+            // Set the exercise data
+            setExerciseData(exerciseData);
 
             // Small delay to ensure state is updated
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            // Generate audio for the COMPLETE sentence (without gap)
-            await generateAudio(completeSentence, card.text);
+            // Generate audio for the COMPLETE sentence
+            await generateAudio(exerciseData.audioSentence, card.text);
 
             setUserAnswer("");
             setSelectedAnswer(null);
             setIsCorrect(null);
             setShowResult(false);
+
         } catch (error) {
             console.error("Error generating question:", error);
 
-            // Enhanced fallback sentences based on card content
-            let fallbackSentence;
-            let completeFallback;
+            // Enhanced fallback logic based on existing card data
+            let fallbackData;
 
             if (card.examples && card.examples.length > 0) {
-                // Use existing example and replace the word with gap
+                // Use existing example and create proper structure
                 const example = card.examples[0];
-                fallbackSentence = example.replace(new RegExp(card.text, 'gi'), '____');
-                completeFallback = example; // Use original example for audio
+                const wordRegex = new RegExp(`\\b${card.text}\\b`, 'gi');
+                const displaySentence = example.replace(wordRegex, '____');
+
+                fallbackData = {
+                    displaySentence: displaySentence,
+                    audioSentence: example, // Use original example for audio
+                    correctForm: card.text,
+                    hint: ""
+                };
             } else if (card.example) {
-                fallbackSentence = card.example.replace(new RegExp(card.text, 'gi'), '____');
-                completeFallback = card.example; // Use original example for audio
+                // Use old example field
+                const wordRegex = new RegExp(`\\b${card.text}\\b`, 'gi');
+                const displaySentence = card.example.replace(wordRegex, '____');
+
+                fallbackData = {
+                    displaySentence: displaySentence,
+                    audioSentence: card.example, // Use original example for audio
+                    correctForm: card.text,
+                    hint: ""
+                };
             } else {
                 // Generic fallback
-                fallbackSentence = `Complete this sentence: I need to ____ this word.`;
-                completeFallback = `Complete this sentence: I need to ${card.text} this word.`;
+                fallbackData = {
+                    displaySentence: `Complete this sentence: I need to ____ this word.`,
+                    audioSentence: `Complete this sentence: I need to ${card.text} this word.`,
+                    correctForm: card.text,
+                    hint: ""
+                };
             }
 
-            console.log(`Fallback sentence with gap: "${fallbackSentence}"`);
-            console.log(`Fallback complete sentence for TTS: "${completeFallback}"`);
+            console.log(`Using fallback exercise data:`, fallbackData);
 
-            setCurrentSentence(fallbackSentence);
+            setExerciseData(fallbackData);
 
             // Small delay for fallback too
             await new Promise(resolve => setTimeout(resolve, 100));
 
             // Try to generate audio even for fallback
             try {
-                await generateAudio(completeFallback, card.text);
+                await generateAudio(fallbackData.audioSentence, card.text);
             } catch (audioError) {
                 console.error("Audio generation also failed:", audioError);
                 setAudioError("Помилка генерації аудіо");
@@ -163,20 +211,18 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
         try {
             console.log(`Generating TTS for: "${sentence}"${targetWord ? ` (target word: ${targetWord})` : ''}`);
 
-            // Add timestamp to prevent caching issues
             const requestData = {
                 text: sentence,
                 timestamp: Date.now() // Force cache bypass
             };
 
-            // Check if user has valid API key first
             const response = await axiosInstance.post('/tts/speech',
                 requestData,
                 {
                     responseType: 'blob',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache', // Prevent caching
+                        'Cache-Control': 'no-cache',
                         'Pragma': 'no-cache'
                     },
                     timeout: 30000 // 30 seconds timeout
@@ -283,17 +329,23 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
         };
     }, [audioUrl]);
 
-    // Check answer function
-    const checkAnswer = (answer, correctWord) => {
+    // Enhanced check answer function - now checks against correct form
+    const checkAnswer = (answer, correctForm, originalWord) => {
         const normalizeText = (text) => {
             return text.toLowerCase().trim().replace(/[.,!?;:'"]/g, '');
         };
 
         const normalizedAnswer = normalizeText(answer);
-        const normalizedCorrect = normalizeText(correctWord);
+        const normalizedCorrect = normalizeText(correctForm);
+        const normalizedOriginal = normalizeText(originalWord);
 
-        // Exact match
+        // Exact match with correct form
         if (normalizedAnswer === normalizedCorrect) {
+            return true;
+        }
+
+        // Also accept original word form (for flexibility)
+        if (normalizedAnswer === normalizedOriginal) {
             return true;
         }
 
@@ -308,9 +360,9 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
     };
 
     const handleSubmitAnswer = () => {
-        if (!userAnswer.trim() || selectedAnswer !== null) return;
+        if (!userAnswer.trim() || selectedAnswer !== null || !exerciseData) return;
 
-        const correct = checkAnswer(userAnswer, currentCard.text);
+        const correct = checkAnswer(userAnswer, exerciseData.correctForm, currentCard.text);
         setSelectedAnswer(userAnswer);
         setIsCorrect(correct);
         setShowResult(true);
@@ -331,10 +383,10 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
         if (currentCardIndex < practiceCards.length - 1) {
             setCurrentCardIndex(currentCardIndex + 1);
         } else {
-            // Exercise completed - score already updated in handleSubmitAnswer
+            // Exercise completed
             onExit({
                 completed: true,
-                score: score // Use current score, no need to add again
+                score: score
             });
         }
     };
@@ -449,7 +501,7 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                                                 Аудіо недоступне, але ви можете читати речення текстом
                                             </div>
                                             <button
-                                                onClick={() => generateAudio(currentSentence)}
+                                                onClick={() => generateAudio(exerciseData?.audioSentence)}
                                                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
                                             >
                                                 Спробувати знову
@@ -479,9 +531,9 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                                 </div>
 
                                 {/* Show sentence text visually */}
-                                {currentSentence && (
+                                {exerciseData?.displaySentence && (
                                     <p className="text-lg text-gray-800 font-mono tracking-wide">
-                                        {currentSentence}
+                                        {exerciseData.displaySentence}
                                     </p>
                                 )}
                             </div>
@@ -490,6 +542,12 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                             <div className="text-sm text-gray-500 mb-4">
                                 <Type className="w-4 h-4 inline mr-1" />
                                 Впишіть слово, яке ви чуєте на місці пропуску
+                                {exerciseData?.hint && (
+                                    <div className="mt-2 flex items-center justify-center text-blue-600">
+                                        <HelpCircle className="w-4 h-4 mr-1" />
+                                        <span>Підказка: {exerciseData.hint}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -542,7 +600,7 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                         </div>
 
                         {/* Result */}
-                        {showResult && (
+                        {showResult && exerciseData && (
                             <div className={`mt-6 p-6 rounded-xl ${
                                 isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
                             }`}>
@@ -562,10 +620,18 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                                 {!isCorrect && (
                                     <div className="space-y-2">
                                         <p className="text-gray-700">
-                                            Правильна відповідь: <strong>{currentCard.text}</strong>
+                                            Правильна відповідь: <strong>{exerciseData.correctForm}</strong>
                                         </p>
                                         <p className="text-gray-600 text-sm">
                                             Ваша відповідь: <span className="font-mono">{userAnswer}</span>
+                                        </p>
+                                        {exerciseData.hint && (
+                                            <p className="text-blue-600 text-sm">
+                                                Підказка: {exerciseData.hint}
+                                            </p>
+                                        )}
+                                        <p className="text-gray-600 text-sm">
+                                            Повне речення: {exerciseData.audioSentence}
                                         </p>
                                     </div>
                                 )}
