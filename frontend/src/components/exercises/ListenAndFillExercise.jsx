@@ -468,7 +468,7 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
             </div>
 
             {/* Question */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            <div className="bg-white rounded-2xl shadow-md p-8 h-full">
                 {isLoading ? (
                     <div className="text-center py-12">
                         <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
@@ -481,7 +481,7 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                         {/* Audio Controls */}
                         <div className="text-center mb-8">
                             <h2 className="text-lg font-medium text-gray-700 mb-4">
-                                Прослухайте речення та впишіть пропущене слово
+                                Яке слово ви чуєте на місці пропуску?
                             </h2>
 
                             <div className="bg-blue-50 rounded-xl p-6 border-l-4 border-blue-400 mb-6">
@@ -537,18 +537,6 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                                     </p>
                                 )}
                             </div>
-
-                            {/* Hint */}
-                            <div className="text-sm text-gray-500 mb-4">
-                                <Type className="w-4 h-4 inline mr-1" />
-                                Впишіть слово, яке ви чуєте на місці пропуску
-                                {exerciseData?.hint && (
-                                    <div className="mt-2 flex items-center justify-center text-blue-600">
-                                        <HelpCircle className="w-4 h-4 mr-1" />
-                                        <span>Підказка: {exerciseData.hint}</span>
-                                    </div>
-                                )}
-                            </div>
                         </div>
 
                         {/* Answer Input */}
@@ -592,9 +580,6 @@ const ListenAndFillExercise = ({ practiceCards, onExit }) => {
                                     >
                                         Перевірити
                                     </button>
-                                    <p className="text-sm text-gray-500 mt-2">
-                                        Або натисніть <kbd>Enter</kbd>
-                                    </p>
                                 </div>
                             )}
                         </div>

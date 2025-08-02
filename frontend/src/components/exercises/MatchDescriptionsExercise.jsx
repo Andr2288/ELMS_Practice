@@ -249,7 +249,7 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
     };
 
     return (
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-4xl mx-auto">
             {/* Header */}
             <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
@@ -287,7 +287,7 @@ const MatchDescriptionsExercise = ({ practiceCards, onExit }) => {
             </div>
 
             {/* Main Exercise */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            <div className="bg-white rounded-2xl shadow-md p-8 mb-6">
                 {isLoading ? (
                     <div className="text-center py-12">
                         <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />

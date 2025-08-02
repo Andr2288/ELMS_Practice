@@ -228,31 +228,21 @@ const MultipleChoiceExercise = ({ practiceCards, onExit }) => {
                 {/* Progress */}
                 <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
                     <span>Питання {currentCardIndex + 1} з {dynamicPracticeCards.length}</span>
-                    <span>Правильно: {score.correct} з {score.total}</span>
+                    <span>Правильно: {score.correct} з {dynamicPracticeCards.length}</span>
                 </div>
                 {/* Прогрес-бар базується на оригінальній кількості для правильного відображення */}
                 <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                         className="bg-gradient-to-r from-pink-400 to-rose-400 h-2 rounded-full transition-all duration-300"
                         style={{
-                            width: `${Math.min(100, (Math.min(currentCardIndex + 1, originalCardsCount) / originalCardsCount) * 100)}%`
+                            width: `${Math.min(100, (Math.min(currentCardIndex + 1, dynamicPracticeCards.length) / dynamicPracticeCards.length) * 100)}%`
                         }}
                     />
                 </div>
-                {dynamicPracticeCards.length > originalCardsCount && (
-                    <div className="mt-2 text-xs text-orange-600 text-center animate-pulse">
-                        📚 Додано {dynamicPracticeCards.length - originalCardsCount} слів для повторення
-                    </div>
-                )}
-                {cardAddedBack && (
-                    <div className="mt-1 text-xs text-blue-600 text-center animate-bounce">
-                        ✨ Це слово додано в кінець для закріплення!
-                    </div>
-                )}
             </div>
 
             {/* Question */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            <div className="bg-white rounded-2xl shadow-md p-8 mb-6 h-full">
                 {isLoading ? (
                     <div className="text-center py-12">
                         <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
