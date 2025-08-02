@@ -1,4 +1,4 @@
-// frontend/src/pages/PracticePage.jsx - ПОВНІСТЮ НОВИЙ ДИЗАЙН
+// frontend/src/pages/PracticePage.jsx - БЕЗ ТАБІВ
 
 import { useState, useEffect } from "react";
 import { useFlashcardStore } from "../store/useFlashcardStore.js";
@@ -23,7 +23,6 @@ const PracticePage = () => {
     const [currentExercise, setCurrentExercise] = useState(null);
     const [lastResults, setLastResults] = useState(null);
     const [showCategoryFilter, setShowCategoryFilter] = useState(false);
-    const [activeTab, setActiveTab] = useState('recommended');
 
     // Статистика та прогрес
     const [practiceStats, setPracticeStats] = useState({
@@ -331,225 +330,196 @@ const PracticePage = () => {
                         </div>
                     </div>
 
-                    {/* Tab Navigation */}
-                    <div className="mb-8">
-                        <nav className="flex space-x-8">
-                            {[
-                                { id: 'recommended', label: 'Рекомендовано', icon: Star },
-                                { id: 'exercises', label: 'Всі вправи', icon: Target },
-                                { id: 'quick', label: 'Швидка практика', icon: Zap }
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center px-4 py-2 border-b-2 font-medium transition-colors ${
-                                        activeTab === tab.id
-                                            ? 'border-blue-600 text-blue-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                                    }`}
-                                >
-                                    <tab.icon className="w-4 h-4 mr-2" />
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </nav>
-                    </div>
-
-                    {/* Content based on active tab */}
-                    {activeTab === 'recommended' && (
-                        <div className="space-y-8 mb-8">
-                            {/* Quick Practice Cards */}
-                            <div>
-                                <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                                    <Sparkles className="w-5 h-5 mr-2 text-yellow-500" />
-                                    Швидкий старт
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {quickPractice.map((practice, index) => (
-                                        <div
-                                            key={index}
-                                            onClick={() => handleExerciseClick('multiple-choice')}
-                                            className="relative group cursor-pointer"
-                                        >
-                                            <div className={`${practice.color} rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2`}>
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <practice.icon className="w-8 h-8" />
-                                                    <ArrowRight className="w-5 h-5 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                                                </div>
-                                                <h4 className="text-lg font-semibold mb-2">{practice.title}</h4>
-                                                <p className="text-white/90 text-sm mb-4">{practice.description}</p>
-                                                <div className="flex items-center text-sm">
-                                                    <Clock className="w-4 h-4 mr-1" />
-                                                    <span>{practice.time}</span>
-                                                    <span className="mx-2">•</span>
-                                                    <span>{Math.min(practice.cards, practiceCards.length)} карток</span>
-                                                </div>
+                    {/* СЕКЦІЯ 1: Швидкий старт */}
+                    <div className="space-y-8 mb-12">
+                        <div>
+                            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                                <Sparkles className="w-5 h-5 mr-2 text-yellow-500" />
+                                Швидкий старт
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {quickPractice.map((practice, index) => (
+                                    <div
+                                        key={index}
+                                        onClick={() => handleExerciseClick('multiple-choice')}
+                                        className="relative group cursor-pointer"
+                                    >
+                                        <div className={`${practice.color} rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2`}>
+                                            <div className="flex items-center justify-between mb-4">
+                                                <practice.icon className="w-8 h-8" />
+                                                <ArrowRight className="w-5 h-5 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                                            </div>
+                                            <h4 className="text-lg font-semibold mb-2">{practice.title}</h4>
+                                            <p className="text-white/90 text-sm mb-4">{practice.description}</p>
+                                            <div className="flex items-center text-sm">
+                                                <Clock className="w-4 h-4 mr-1" />
+                                                <span>{practice.time}</span>
+                                                <span className="mx-2">•</span>
+                                                <span>{Math.min(practice.cards, practiceCards.length)} карток</span>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Today's Recommendation */}
-                            <div>
-                                <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                                    <Lightbulb className="w-5 h-5 mr-2 text-blue-500" />
-                                    Рекомендація дня
-                                </h3>
-                                <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 text-white shadow-xl">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h4 className="text-2xl font-bold mb-2">Міксована практика</h4>
-                                            <p className="text-blue-100 mb-4">
-                                                Комбінація різних типів вправ для максимального ефекту
-                                            </p>
-                                            <div className="flex items-center space-x-4 text-sm">
-                                                <div className="flex items-center">
-                                                    <Timer className="w-4 h-4 mr-1" />
-                                                    15-20 хв
-                                                </div>
-                                                <div className="flex items-center">
-                                                    <BookOpen className="w-4 h-4 mr-1" />
-                                                    {Math.min(20, practiceCards.length)} карток
-                                                </div>
-                                                <div className="flex items-center">
-                                                    <TrendingUp className="w-4 h-4 mr-1" />
-                                                    Високий ефект
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => handleExerciseClick('multiple-choice')}
-                                            className="bg-white/20 hover:bg-white/30 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 flex items-center"
-                                        >
-                                            Почати
-                                            <Play className="w-5 h-5 ml-2" />
-                                        </button>
                                     </div>
-                                </div>
+                                ))}
                             </div>
                         </div>
-                    )}
 
-                    {activeTab === 'exercises' && (
-                        <div className="mb-8">
+                        {/* Рекомендація дня */}
+                        <div>
                             <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                                <Target className="w-5 h-5 mr-2 text-purple-500" />
-                                Типи вправ
+                                <Lightbulb className="w-5 h-5 mr-2 text-blue-500" />
+                                Рекомендація дня
                             </h3>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-                                {exerciseTypes.map((exercise) => {
-                                    const isAvailable = practiceCards.length >= exercise.minCards;
-                                    const Icon = exercise.icon;
-
-                                    return (
-                                        <div
-                                            key={exercise.id}
-                                            onClick={() => isAvailable && handleExerciseClick(exercise.id)}
-                                            className={`group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 ${
-                                                isAvailable ? 'cursor-pointer hover:-translate-y-2' : 'opacity-60 cursor-not-allowed'
-                                            }`}
-                                        >
-                                            {/* Background Gradient */}
-                                            <div className={`absolute inset-0 bg-gradient-to-br ${exercise.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-2xl`} />
-
-                                            {/* Icon */}
-                                            <div className={`w-16 h-16 bg-gradient-to-br ${exercise.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                                                <Icon className="w-8 h-8 text-white" />
+                            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 text-white shadow-xl">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="text-2xl font-bold mb-2">Міксована практика</h4>
+                                        <p className="text-blue-100 mb-4">
+                                            Комбінація різних типів вправ для максимального ефекту
+                                        </p>
+                                        <div className="flex items-center space-x-4 text-sm">
+                                            <div className="flex items-center">
+                                                <Timer className="w-4 h-4 mr-1" />
+                                                15-20 хв
                                             </div>
-
-                                            {/* Content */}
-                                            <div className="relative">
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <h4 className="text-xl font-bold text-gray-900">{exercise.title}</h4>
-                                                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
-                                                </div>
-
-                                                <p className="text-gray-600 mb-6">{exercise.description}</p>
-
-                                                {/* Stats */}
-                                                <div className="flex items-center space-x-4 mb-6 text-sm">
-                                                    <div className="flex items-center text-green-600">
-                                                        <span className="w-2 h-2 bg-green-600 rounded-full mr-2" />
-                                                        {exercise.difficulty}
-                                                    </div>
-                                                    <div className="flex items-center text-blue-600">
-                                                        <Clock className="w-4 h-4 mr-1" />
-                                                        {exercise.time}
-                                                    </div>
-                                                </div>
-
-                                                {/* Features */}
-                                                <div className="space-y-2 mb-6">
-                                                    {exercise.features.map((feature, index) => (
-                                                        <div key={index} className="flex items-center text-sm text-gray-600">
-                                                            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-3" />
-                                                            {feature}
-                                                        </div>
-                                                    ))}
-                                                </div>
-
-                                                {/* Action */}
-                                                {isAvailable ? (
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-sm text-gray-500">
-                                                            {practiceCards.length} карток доступно
-                                                        </span>
-                                                        <div className={`px-4 py-2 bg-gradient-to-r ${exercise.color} text-white rounded-lg text-sm font-medium`}>
-                                                            Почати
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-sm text-red-500">
-                                                        Потрібно мінімум {exercise.minCards} карток
-                                                    </div>
-                                                )}
+                                            <div className="flex items-center">
+                                                <BookOpen className="w-4 h-4 mr-1" />
+                                                {Math.min(20, practiceCards.length)} карток
+                                            </div>
+                                            <div className="flex items-center">
+                                                <TrendingUp className="w-4 h-4 mr-1" />
+                                                Високий ефект
                                             </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'quick' && (
-                        <div className="mb-8">
-                            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                                <Zap className="w-5 h-5 mr-2 text-yellow-500" />
-                                Швидка практика
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="bg-white rounded-2xl p-8 shadow-lg">
-                                    <h4 className="text-lg font-semibold mb-4">Експрес-режим</h4>
-                                    <p className="text-gray-600 mb-6">
-                                        Швидкі 5-хвилинні сесії для підтримання форми
-                                    </p>
+                                    </div>
                                     <button
                                         onClick={() => handleExerciseClick('multiple-choice')}
-                                        className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all"
+                                        className="bg-white/20 hover:bg-white/30 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 flex items-center"
                                     >
-                                        Почати експрес
-                                    </button>
-                                </div>
-
-                                <div className="bg-white rounded-2xl p-8 shadow-lg">
-                                    <h4 className="text-lg font-semibold mb-4">Випадкова вправа</h4>
-                                    <p className="text-gray-600 mb-6">
-                                        Система обере найкращу вправу для вас
-                                    </p>
-                                    <button
-                                        onClick={() => {
-                                            const randomExercise = exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
-                                            handleExerciseClick(randomExercise.id);
-                                        }}
-                                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all"
-                                    >
-                                        Випадкова вправа
+                                        Почати
+                                        <Play className="w-5 h-5 ml-2" />
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+
+                    {/* СЕКЦІЯ 2: Всі вправи */}
+                    <div className="mb-12">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                            <Target className="w-5 h-5 mr-2 text-purple-500" />
+                            Типи вправ
+                        </h3>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                            {exerciseTypes.map((exercise) => {
+                                const isAvailable = practiceCards.length >= exercise.minCards;
+                                const Icon = exercise.icon;
+
+                                return (
+                                    <div
+                                        key={exercise.id}
+                                        onClick={() => isAvailable && handleExerciseClick(exercise.id)}
+                                        className={`group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 ${
+                                            isAvailable ? 'cursor-pointer hover:-translate-y-2' : 'opacity-60 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        {/* Background Gradient */}
+                                        <div className={`absolute inset-0 bg-gradient-to-br ${exercise.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-2xl`} />
+
+                                        {/* Icon */}
+                                        <div className={`w-16 h-16 bg-gradient-to-br ${exercise.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                                            <Icon className="w-8 h-8 text-white" />
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="relative">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h4 className="text-xl font-bold text-gray-900">{exercise.title}</h4>
+                                                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                                            </div>
+
+                                            <p className="text-gray-600 mb-6">{exercise.description}</p>
+
+                                            {/* Stats */}
+                                            <div className="flex items-center space-x-4 mb-6 text-sm">
+                                                <div className="flex items-center text-green-600">
+                                                    <span className="w-2 h-2 bg-green-600 rounded-full mr-2" />
+                                                    {exercise.difficulty}
+                                                </div>
+                                                <div className="flex items-center text-blue-600">
+                                                    <Clock className="w-4 h-4 mr-1" />
+                                                    {exercise.time}
+                                                </div>
+                                            </div>
+
+                                            {/* Features */}
+                                            <div className="space-y-2 mb-6">
+                                                {exercise.features.map((feature, index) => (
+                                                    <div key={index} className="flex items-center text-sm text-gray-600">
+                                                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-3" />
+                                                        {feature}
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Action */}
+                                            {isAvailable ? (
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm text-gray-500">
+                                                        {practiceCards.length} карток доступно
+                                                    </span>
+                                                    <div className={`px-4 py-2 bg-gradient-to-r ${exercise.color} text-white rounded-lg text-sm font-medium`}>
+                                                        Почати
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm text-red-500">
+                                                    Потрібно мінімум {exercise.minCards} карток
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* СЕКЦІЯ 3: Додаткова швидка практика */}
+                    <div className="mb-12">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                            <Zap className="w-5 h-5 mr-2 text-yellow-500" />
+                            Додаткові режими
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="bg-white rounded-2xl p-8 shadow-lg">
+                                <h4 className="text-lg font-semibold mb-4">Експрес-режим</h4>
+                                <p className="text-gray-600 mb-6">
+                                    Швидкі 5-хвилинні сесії для підтримання форми
+                                </p>
+                                <button
+                                    onClick={() => handleExerciseClick('multiple-choice')}
+                                    className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all"
+                                >
+                                    Почати експрес
+                                </button>
+                            </div>
+
+                            <div className="bg-white rounded-2xl p-8 shadow-lg">
+                                <h4 className="text-lg font-semibold mb-4">Випадкова вправа</h4>
+                                <p className="text-gray-600 mb-6">
+                                    Система обере найкращу вправу для вас
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        const randomExercise = exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
+                                        handleExerciseClick(randomExercise.id);
+                                    }}
+                                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all"
+                                >
+                                    Випадкова вправа
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* No Cards State */}
                     {practiceCards.length === 0 && (
